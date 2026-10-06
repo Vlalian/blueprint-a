@@ -1,0 +1,5 @@
+{
+  "name": "angular-style-fixture",
+  "private": true,
+  "description": "An Angular-style TypeScript service tested with Jest and ts-jest, for the test-strength gates' bites test"
+}

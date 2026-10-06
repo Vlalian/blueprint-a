@@ -1,0 +1,61 @@
+{
+  "version": "1.179.0",
+  "results": [
+    {
+      "check_id": "rules.javascript.lang.security.detect-child-process",
+      "path": "src/list.ts",
+      "start": {
+        "line": 5,
+        "col": 22,
+        "offset": 184
+      },
+      "end": {
+        "line": 5,
+        "col": 33,
+        "offset": 195
+      },
+      "extra": {
+        "message": "Detected calls to child_process from a function argument `dir`. This could lead to a command injection if the input is user controllable. Try to avoid calls to child_process, and if it is needed ensure user input is correctly sanitized or sandboxed. ",
+        "metadata": {
+          "cwe": [
+            "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+          ],
+          "owasp": [
+            "A01:2017 - Injection",
+            "A03:2021 - Injection",
+            "A05:2025 - Injection"
+          ],
+          "references": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Nodejs_Security_Cheat_Sheet.html#do-not-use-dangerous-functions"
+          ],
+          "source-rule-url": "https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-child-process.js",
+          "category": "security",
+          "technology": [
+            "javascript"
+          ],
+          "cwe2022-top25": true,
+          "cwe2021-top25": true,
+          "subcategory": [
+            "audit"
+          ],
+          "likelihood": "LOW",
+          "impact": "HIGH",
+          "confidence": "LOW"
+        },
+        "severity": "ERROR",
+        "fingerprint": "requires login",
+        "lines": "requires login",
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    }
+  ],
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "src/list.ts"
+    ]
+  },
+  "engine_requested": "OSS",
+  "skipped_rules": []
+}

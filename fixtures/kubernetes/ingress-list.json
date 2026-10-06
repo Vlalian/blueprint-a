@@ -1,0 +1,29 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "Ingress",
+      "metadata": {
+        "name": "web",
+        "namespace": "preview-ticket-55-kubernetes-previews-cb6145",
+        "labels": { "app.kubernetes.io/instance": "preview-ticket-55-kubernetes-previews-cb6145" }
+      },
+      "spec": {
+        "ingressClassName": "nginx",
+        "tls": [{ "hosts": ["ticket-55.preview.example.com"], "secretName": "preview-tls" }],
+        "rules": [
+          {
+            "host": "ticket-55.preview.example.com",
+            "http": {
+              "paths": [{ "path": "/", "pathType": "Prefix", "backend": { "service": { "name": "web", "port": { "number": 80 } } } }]
+            }
+          }
+        ]
+      },
+      "status": { "loadBalancer": { "ingress": [{ "ip": "203.0.113.10" }] } }
+    }
+  ],
+  "metadata": { "resourceVersion": "" }
+}
