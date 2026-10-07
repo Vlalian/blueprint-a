@@ -1,0 +1,15 @@
+{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "name": "preview-ticket-55-kubernetes-previews-cb6145",
+    "labels": {
+      "app.kubernetes.io/managed-by": "blueprint-a",
+      "kubernetes.io/metadata.name": "preview-ticket-55-kubernetes-previews-cb6145"
+    },
+    "annotations": { "blueprint-a/branch": "ticket/55-kubernetes-previews" },
+    "creationTimestamp": "2026-10-06T08:00:00Z"
+  },
+  "spec": { "finalizers": ["kubernetes"] },
+  "status": { "phase": "Active" }
+}

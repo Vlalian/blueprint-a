@@ -1,0 +1,11 @@
+{
+  "name": "sample-project",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "node scripts/lint.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --outDir dist --rootDir src --noEmit false"
+  }
+}
