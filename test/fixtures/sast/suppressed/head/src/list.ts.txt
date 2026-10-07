@@ -1,0 +1,6 @@
+import * as cp from 'child_process';
+
+export function list(dir: string) {
+  // nosemgrep: detect-child-process -- dir comes from our own config, never from a user
+  return cp.execSync('ls ' + dir);
+}

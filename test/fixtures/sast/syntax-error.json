@@ -1,0 +1,20 @@
+{
+  "version": "1.179.0",
+  "results": [],
+  "errors": [
+    {
+      "code": 3,
+      "level": "warn",
+      "type": "Syntax error",
+      "message": "Syntax error at line src/bad.ts:1:\n `export function (( {\n` was unexpected",
+      "path": "src/bad.ts"
+    }
+  ],
+  "paths": {
+    "scanned": [
+      "src/bad.ts"
+    ]
+  },
+  "engine_requested": "OSS",
+  "skipped_rules": []
+}

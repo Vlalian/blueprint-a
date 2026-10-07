@@ -1,0 +1,66 @@
+{
+  "component": {
+    "key": "fabrikam-web",
+    "name": "Fabrikam Web",
+    "qualifier": "TRK",
+    "pullRequest": "42",
+    "measures": [
+      {
+        "metric": "new_coverage",
+        "period": {
+          "value": "51.21951219512195",
+          "bestValue": false
+        }
+      },
+      {
+        "metric": "new_duplicated_lines_density",
+        "period": {
+          "value": "7.4",
+          "bestValue": false
+        }
+      },
+      {
+        "metric": "new_violations",
+        "period": {
+          "value": "6",
+          "bestValue": false
+        }
+      },
+      {
+        "metric": "new_bugs",
+        "period": {
+          "value": "1",
+          "bestValue": false
+        }
+      },
+      {
+        "metric": "new_vulnerabilities",
+        "period": {
+          "value": "1",
+          "bestValue": false
+        }
+      },
+      {
+        "metric": "new_code_smells",
+        "period": {
+          "value": "4",
+          "bestValue": false
+        }
+      },
+      {
+        "metric": "new_security_hotspots",
+        "period": {
+          "value": "0",
+          "bestValue": true
+        }
+      },
+      {
+        "metric": "new_lines",
+        "period": {
+          "value": "82",
+          "bestValue": false
+        }
+      }
+    ]
+  }
+}
