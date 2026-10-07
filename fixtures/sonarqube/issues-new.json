@@ -1,0 +1,300 @@
+{
+  "total": 7,
+  "p": 1,
+  "ps": 500,
+  "paging": {
+    "pageIndex": 1,
+    "pageSize": 500,
+    "total": 7
+  },
+  "effortTotal": 63,
+  "debtTotal": 63,
+  "issues": [
+    {
+      "key": "AZJ3kr-bug-1",
+      "rule": "typescript:S2259",
+      "severity": "MAJOR",
+      "component": "fabrikam-web:src/report/export.ts",
+      "project": "fabrikam-web",
+      "line": 48,
+      "hash": "5f2e7a1c9b0d3e4f6a8b7c2d1e0f9a8b",
+      "textRange": {
+        "startLine": 48,
+        "endLine": 48,
+        "startOffset": 2,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "TypeError can be thrown as \"rows\" might be null or undefined here.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [],
+      "creationDate": "2026-10-06T09:41:12+0000",
+      "updateDate": "2026-10-06T09:41:12+0000",
+      "type": "BUG",
+      "pullRequest": "42",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "LOGICAL",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "RELIABILITY",
+          "severity": "HIGH"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false
+    },
+    {
+      "key": "AZJ3kr-vul-1",
+      "rule": "secrets:S6338",
+      "severity": "BLOCKER",
+      "component": "fabrikam-web:src/report/client.ts",
+      "project": "fabrikam-web",
+      "line": 12,
+      "hash": "5f2e7a1c9b0d3e4f6a8b7c2d1e0f9a8b",
+      "textRange": {
+        "startLine": 12,
+        "endLine": 12,
+        "startOffset": 2,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Make sure this Azure Storage Account Key gets revoked, changed, and removed from the code.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [],
+      "creationDate": "2026-10-06T09:41:12+0000",
+      "updateDate": "2026-10-06T09:41:12+0000",
+      "type": "VULNERABILITY",
+      "pullRequest": "42",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "TRUSTWORTHY",
+      "cleanCodeAttributeCategory": "RESPONSIBLE",
+      "impacts": [
+        {
+          "softwareQuality": "SECURITY",
+          "severity": "BLOCKER"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false
+    },
+    {
+      "key": "AZJ3kr-sml-1",
+      "rule": "typescript:S3776",
+      "severity": "CRITICAL",
+      "component": "fabrikam-web:src/report/export.ts",
+      "project": "fabrikam-web",
+      "line": 21,
+      "hash": "5f2e7a1c9b0d3e4f6a8b7c2d1e0f9a8b",
+      "textRange": {
+        "startLine": 21,
+        "endLine": 21,
+        "startOffset": 2,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [],
+      "creationDate": "2026-10-06T09:41:12+0000",
+      "updateDate": "2026-10-06T09:41:12+0000",
+      "type": "CODE_SMELL",
+      "pullRequest": "42",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "FOCUSED",
+      "cleanCodeAttributeCategory": "ADAPTABLE",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "HIGH"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false
+    },
+    {
+      "key": "AZJ3kr-dup-1",
+      "rule": "common-ts:DuplicatedBlocks",
+      "severity": "MAJOR",
+      "component": "fabrikam-web:src/report/format.ts",
+      "project": "fabrikam-web",
+      "hash": "5f2e7a1c9b0d3e4f6a8b7c2d1e0f9a8b",
+      "flows": [],
+      "status": "OPEN",
+      "message": "1 duplicated blocks of code must be removed.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [],
+      "creationDate": "2026-10-06T09:41:12+0000",
+      "updateDate": "2026-10-06T09:41:12+0000",
+      "type": "CODE_SMELL",
+      "pullRequest": "42",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "DISTINCT",
+      "cleanCodeAttributeCategory": "ADAPTABLE",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false
+    },
+    {
+      "key": "AZJ3kr-sml-2",
+      "rule": "typescript:S1854",
+      "severity": "MAJOR",
+      "component": "fabrikam-web:src/report/format.ts",
+      "project": "fabrikam-web",
+      "line": 33,
+      "hash": "5f2e7a1c9b0d3e4f6a8b7c2d1e0f9a8b",
+      "textRange": {
+        "startLine": 33,
+        "endLine": 33,
+        "startOffset": 2,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Remove this useless assignment to variable \"width\".",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [],
+      "creationDate": "2026-10-06T09:41:12+0000",
+      "updateDate": "2026-10-06T09:41:12+0000",
+      "type": "CODE_SMELL",
+      "pullRequest": "42",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false
+    },
+    {
+      "key": "AZJ3kr-fp-1",
+      "rule": "typescript:S4123",
+      "severity": "MAJOR",
+      "component": "fabrikam-web:src/report/client.ts",
+      "project": "fabrikam-web",
+      "line": 30,
+      "hash": "5f2e7a1c9b0d3e4f6a8b7c2d1e0f9a8b",
+      "textRange": {
+        "startLine": 30,
+        "endLine": 30,
+        "startOffset": 2,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "RESOLVED",
+      "message": "Unexpected `await` of a non-Promise (non-\"Thenable\") value.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [],
+      "creationDate": "2026-10-06T09:41:12+0000",
+      "updateDate": "2026-10-06T09:41:12+0000",
+      "type": "BUG",
+      "pullRequest": "42",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "LOGICAL",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "RELIABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "FALSE_POSITIVE",
+      "prioritizedRule": false,
+      "resolution": "FALSE-POSITIVE"
+    },
+    {
+      "key": "AZJ3kr-fix-1",
+      "rule": "typescript:S1481",
+      "severity": "MINOR",
+      "component": "fabrikam-web:src/report/format.ts",
+      "project": "fabrikam-web",
+      "line": 9,
+      "hash": "5f2e7a1c9b0d3e4f6a8b7c2d1e0f9a8b",
+      "textRange": {
+        "startLine": 9,
+        "endLine": 9,
+        "startOffset": 2,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "CLOSED",
+      "message": "Remove the declaration of the unused \"pad\" variable.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [],
+      "creationDate": "2026-10-06T09:41:12+0000",
+      "updateDate": "2026-10-06T09:41:12+0000",
+      "type": "CODE_SMELL",
+      "pullRequest": "42",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "LOGICAL",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "FIXED",
+      "prioritizedRule": false,
+      "resolution": "FIXED"
+    }
+  ],
+  "components": [
+    {
+      "key": "fabrikam-web",
+      "enabled": true,
+      "qualifier": "TRK",
+      "name": "Fabrikam Web",
+      "longName": "Fabrikam Web",
+      "pullRequest": "42"
+    }
+  ],
+  "facets": []
+}
