@@ -1,0 +1,1299 @@
+{
+  "$comment": "The pinned Semgrep rules the sast gate runs (ticket 60). Read by gates/sast; snapshot.test.ts proves this list matches the rule files beside it. Rebuild: see README.md.",
+  "semgrep": "1.179.0",
+  "source": {
+    "repo": "https://github.com/semgrep/semgrep-rules",
+    "commit": "a84ff9cc2453ca91d581380de4b8b3f272f6f4be",
+    "date": "2026-09-22"
+  },
+  "licence": "Semgrep Rules License v1.0 (https://semgrep.dev/legal/rules-license): use limited to internal business purposes; no redistribution and no offering as a service. The files are copied unchanged, notices kept.",
+  "selection": "every rule file under javascript/, typescript/ and csharp/ whose rules are all metadata.category security and run only on JavaScript, TypeScript or C# (the security rules of p/typescript, p/javascript, p/csharp, p/owasp-top-ten and p/security-audit for those languages); test files and files mixing in HTML, YAML or config languages are left out",
+  "files": [
+    "csharp/dotnet/security/audit/ldap-injection.yaml",
+    "csharp/dotnet/security/audit/mass-assignment.yaml",
+    "csharp/dotnet/security/audit/misconfigured-lockout-option.yaml",
+    "csharp/dotnet/security/audit/missing-or-broken-authorization.yaml",
+    "csharp/dotnet/security/audit/open-directory-listing.yaml",
+    "csharp/dotnet/security/audit/xpath-injection.yaml",
+    "csharp/dotnet/security/mvc-missing-antiforgery.yaml",
+    "csharp/dotnet/security/razor-template-injection.yaml",
+    "csharp/dotnet/security/use_deprecated_cipher_algorithm.yaml",
+    "csharp/dotnet/security/use_ecb_mode.yaml",
+    "csharp/dotnet/security/use_weak_rng_for_keygeneration.yaml",
+    "csharp/dotnet/security/use_weak_rsa_encryption_padding.yaml",
+    "csharp/lang/security/ad/jwt-tokenvalidationparameters-no-expiry-validation.yaml",
+    "csharp/lang/security/cryptography/X509-subject-name-validation.yaml",
+    "csharp/lang/security/cryptography/X509Certificate2-privkey.yaml",
+    "csharp/lang/security/cryptography/unsigned-security-token.yaml",
+    "csharp/lang/security/filesystem/unsafe-path-combine.yaml",
+    "csharp/lang/security/http/http-listener-wildcard-bindings.yaml",
+    "csharp/lang/security/injections/os-command.yaml",
+    "csharp/lang/security/insecure-deserialization/binary-formatter.yaml",
+    "csharp/lang/security/insecure-deserialization/data-contract-resolver.yaml",
+    "csharp/lang/security/insecure-deserialization/fast-json.yaml",
+    "csharp/lang/security/insecure-deserialization/fs-pickler.yaml",
+    "csharp/lang/security/insecure-deserialization/insecure-typefilterlevel-full.yaml",
+    "csharp/lang/security/insecure-deserialization/javascript-serializer.yaml",
+    "csharp/lang/security/insecure-deserialization/los-formatter.yaml",
+    "csharp/lang/security/insecure-deserialization/net-data-contract.yaml",
+    "csharp/lang/security/insecure-deserialization/newtonsoft.yaml",
+    "csharp/lang/security/insecure-deserialization/soap-formatter.yaml",
+    "csharp/lang/security/memory/memory-marshal-create-span.yaml",
+    "csharp/lang/security/missing-hsts-header.yaml",
+    "csharp/lang/security/open-redirect.yaml",
+    "csharp/lang/security/regular-expression-dos/regular-expression-dos-infinite-timeout.yaml",
+    "csharp/lang/security/regular-expression-dos/regular-expression-dos.yaml",
+    "csharp/lang/security/sqli/csharp-sqli.yaml",
+    "csharp/lang/security/ssrf/http-client.yaml",
+    "csharp/lang/security/ssrf/rest-client.yaml",
+    "csharp/lang/security/ssrf/web-client.yaml",
+    "csharp/lang/security/ssrf/web-request.yaml",
+    "csharp/lang/security/stacktrace-disclosure.yaml",
+    "csharp/lang/security/xxe/xmldocument-unsafe-parser-override.yaml",
+    "csharp/lang/security/xxe/xmlreadersettings-unsafe-parser-override.yaml",
+    "csharp/lang/security/xxe/xmltextreader-unsafe-defaults.yaml",
+    "javascript/ajv/security/audit/ajv-allerrors-true.yaml",
+    "javascript/angular/security/detect-angular-element-methods.yaml",
+    "javascript/angular/security/detect-angular-element-taint.yaml",
+    "javascript/angular/security/detect-angular-open-redirect.yaml",
+    "javascript/angular/security/detect-angular-resource-loading.yaml",
+    "javascript/angular/security/detect-angular-sce-disabled.yaml",
+    "javascript/angular/security/detect-angular-trust-as-css.yaml",
+    "javascript/angular/security/detect-angular-trust-as-html-method.yaml",
+    "javascript/angular/security/detect-angular-trust-as-js-method.yaml",
+    "javascript/angular/security/detect-angular-trust-as-method.yaml",
+    "javascript/angular/security/detect-angular-trust-as-resourceurl-method.yaml",
+    "javascript/angular/security/detect-angular-trust-as-url-method.yaml",
+    "javascript/angular/security/detect-third-party-angular-translate.yaml",
+    "javascript/apollo/security/apollo-axios-ssrf.yaml",
+    "javascript/argon2/security/unsafe-argon2-config.yaml",
+    "javascript/audit/detect-replaceall-sanitization.yaml",
+    "javascript/aws-lambda/security/detect-child-process.yaml",
+    "javascript/aws-lambda/security/dynamodb-request-object.yaml",
+    "javascript/aws-lambda/security/knex-sqli.yaml",
+    "javascript/aws-lambda/security/mysql-sqli.yaml",
+    "javascript/aws-lambda/security/pg-sqli.yaml",
+    "javascript/aws-lambda/security/sequelize-sqli.yaml",
+    "javascript/aws-lambda/security/tainted-eval.yaml",
+    "javascript/aws-lambda/security/tainted-html-response.yaml",
+    "javascript/aws-lambda/security/tainted-html-string.yaml",
+    "javascript/aws-lambda/security/tainted-sql-string.yaml",
+    "javascript/aws-lambda/security/vm-runincontext-injection.yaml",
+    "javascript/bluebird/security/audit/tofastproperties-code-execution.yaml",
+    "javascript/browser/security/dom-based-xss.yaml",
+    "javascript/browser/security/eval-detected.yaml",
+    "javascript/browser/security/insecure-document-method.yaml",
+    "javascript/browser/security/insecure-innerhtml.yaml",
+    "javascript/browser/security/insufficient-postmessage-origin-validation.yaml",
+    "javascript/browser/security/open-redirect-from-function.yaml",
+    "javascript/browser/security/open-redirect.yaml",
+    "javascript/browser/security/raw-html-concat.yaml",
+    "javascript/browser/security/raw-html-join.yaml",
+    "javascript/browser/security/wildcard-postmessage-configuration.yaml",
+    "javascript/chrome-remote-interface/security/audit/chrome-remote-interface-compilescript-injection.yaml",
+    "javascript/deno/security/audit/deno-dangerous-run.yaml",
+    "javascript/express/security/audit/express-check-csurf-middleware-usage.yaml",
+    "javascript/express/security/audit/express-check-directory-listing.yaml",
+    "javascript/express/security/audit/express-cookie-settings.yaml",
+    "javascript/express/security/audit/express-detect-notevil-usage.yaml",
+    "javascript/express/security/audit/express-jwt-not-revoked.yaml",
+    "javascript/express/security/audit/express-libxml-noent.yaml",
+    "javascript/express/security/audit/express-libxml-vm-noent.yaml",
+    "javascript/express/security/audit/express-open-redirect.yaml",
+    "javascript/express/security/audit/express-path-join-resolve-traversal.yaml",
+    "javascript/express/security/audit/express-res-sendfile.yaml",
+    "javascript/express/security/audit/express-session-hardcoded-secret.yaml",
+    "javascript/express/security/audit/express-ssrf.yaml",
+    "javascript/express/security/audit/express-third-party-object-deserialization.yaml",
+    "javascript/express/security/audit/express-xml2json-xxe-event.yaml",
+    "javascript/express/security/audit/possible-user-input-redirect.yaml",
+    "javascript/express/security/audit/remote-property-injection.yaml",
+    "javascript/express/security/audit/res-render-injection.yaml",
+    "javascript/express/security/audit/xss/direct-response-write.yaml",
+    "javascript/express/security/audit/xss/mustache/escape-function-overwrite.yaml",
+    "javascript/express/security/cors-misconfiguration.yaml",
+    "javascript/express/security/express-data-exfiltration.yaml",
+    "javascript/express/security/express-expat-xxe.yaml",
+    "javascript/express/security/express-insecure-template-usage.yaml",
+    "javascript/express/security/express-jwt-hardcoded-secret.yaml",
+    "javascript/express/security/express-phantom-injection.yaml",
+    "javascript/express/security/express-puppeteer-injection.yaml",
+    "javascript/express/security/express-sandbox-injection.yaml",
+    "javascript/express/security/express-vm-injection.yaml",
+    "javascript/express/security/express-vm2-injection.yaml",
+    "javascript/express/security/express-wkhtml-injection.yaml",
+    "javascript/express/security/express-xml2json-xxe.yaml",
+    "javascript/express/security/injection/raw-html-format.yaml",
+    "javascript/express/security/injection/tainted-sql-string.yaml",
+    "javascript/express/security/require-request.yaml",
+    "javascript/express/security/x-frame-options-misconfiguration.yaml",
+    "javascript/fbjs/security/audit/insecure-createnodesfrommarkup.yaml",
+    "javascript/grpc/security/grpc-nodejs-insecure-connection.yaml",
+    "javascript/intercom/security/audit/intercom-settings-user-identifier-without-user-hash.yaml",
+    "javascript/jose/security/audit/jose-exposed-data.yaml",
+    "javascript/jose/security/jwt-hardcode.yaml",
+    "javascript/jose/security/jwt-none-alg.yaml",
+    "javascript/jquery/security/audit/jquery-insecure-method.yaml",
+    "javascript/jquery/security/audit/jquery-insecure-selector.yaml",
+    "javascript/jquery/security/audit/prohibit-jquery-html.yaml",
+    "javascript/jsonwebtoken/security/audit/jwt-decode-without-verify.yaml",
+    "javascript/jsonwebtoken/security/audit/jwt-exposed-data.yaml",
+    "javascript/jsonwebtoken/security/jwt-hardcode.yaml",
+    "javascript/jsonwebtoken/security/jwt-none-alg.yaml",
+    "javascript/jwt-simple/security/jwt-simple-noverify.yaml",
+    "javascript/lang/security/audit/code-string-concat.yaml",
+    "javascript/lang/security/audit/dangerous-spawn-shell.yaml",
+    "javascript/lang/security/audit/detect-non-literal-fs-filename.yaml",
+    "javascript/lang/security/audit/detect-non-literal-regexp.yaml",
+    "javascript/lang/security/audit/detect-non-literal-require.yaml",
+    "javascript/lang/security/audit/detect-redos.yaml",
+    "javascript/lang/security/audit/hardcoded-hmac-key.yaml",
+    "javascript/lang/security/audit/incomplete-sanitization.yaml",
+    "javascript/lang/security/audit/md5-used-as-password.yaml",
+    "javascript/lang/security/audit/path-traversal/path-join-resolve-traversal.yaml",
+    "javascript/lang/security/audit/prototype-pollution/prototype-pollution-assignment.yaml",
+    "javascript/lang/security/audit/prototype-pollution/prototype-pollution-loop.yaml",
+    "javascript/lang/security/audit/spawn-shell-true.yaml",
+    "javascript/lang/security/audit/sqli/node-knex-sqli.yaml",
+    "javascript/lang/security/audit/sqli/node-mssql-sqli.yaml",
+    "javascript/lang/security/audit/sqli/node-mysql-sqli.yaml",
+    "javascript/lang/security/audit/sqli/node-postgres-sqli.yaml",
+    "javascript/lang/security/audit/unknown-value-with-script-tag.yaml",
+    "javascript/lang/security/audit/unsafe-dynamic-method.yaml",
+    "javascript/lang/security/audit/unsafe-formatstring.yaml",
+    "javascript/lang/security/detect-buffer-noassert.yaml",
+    "javascript/lang/security/detect-child-process.yaml",
+    "javascript/lang/security/detect-disable-mustache-escape.yaml",
+    "javascript/lang/security/detect-eval-with-expression.yaml",
+    "javascript/lang/security/detect-no-csrf-before-method-override.yaml",
+    "javascript/lang/security/detect-pseudoRandomBytes.yaml",
+    "javascript/lang/security/html-in-template-string.yaml",
+    "javascript/lang/security/insecure-object-assign.yaml",
+    "javascript/lang/security/spawn-git-clone.yaml",
+    "javascript/monaco-editor/security/audit/monaco-hover-htmlsupport.yaml",
+    "javascript/node-crypto/security/aead-no-final.yaml",
+    "javascript/node-crypto/security/create-de-cipher-no-iv.yaml",
+    "javascript/node-crypto/security/gcm-no-tag-length.yaml",
+    "javascript/node-expat/security/audit/expat-xxe.yaml",
+    "javascript/passport-jwt/security/passport-hardcode.yaml",
+    "javascript/phantom/security/audit/phantom-injection.yaml",
+    "javascript/playwright/security/audit/playwright-addinitscript-code-injection.yaml",
+    "javascript/playwright/security/audit/playwright-evaluate-arg-injection.yaml",
+    "javascript/playwright/security/audit/playwright-evaluate-code-injection.yaml",
+    "javascript/playwright/security/audit/playwright-exposed-chrome-devtools.yaml",
+    "javascript/playwright/security/audit/playwright-goto-injection.yaml",
+    "javascript/playwright/security/audit/playwright-setcontent-injection.yaml",
+    "javascript/puppeteer/security/audit/puppeteer-evaluate-arg-injection.yaml",
+    "javascript/puppeteer/security/audit/puppeteer-evaluate-code-injection.yaml",
+    "javascript/puppeteer/security/audit/puppeteer-exposed-chrome-devtools.yaml",
+    "javascript/puppeteer/security/audit/puppeteer-goto-injection.yaml",
+    "javascript/puppeteer/security/audit/puppeteer-setcontent-injection.yaml",
+    "javascript/sandbox/security/audit/sandbox-code-injection.yaml",
+    "javascript/sax/security/audit/sax-xxe.yaml",
+    "javascript/sequelize/security/audit/sequelize-enforce-tls.yaml",
+    "javascript/sequelize/security/audit/sequelize-injection-express.yaml",
+    "javascript/sequelize/security/audit/sequelize-raw-query.yaml",
+    "javascript/sequelize/security/audit/sequelize-tls-disabled-cert-validation.yaml",
+    "javascript/sequelize/security/audit/sequelize-weak-tls-version.yaml",
+    "javascript/serialize-javascript/security/audit/unsafe-serialize-javascript.yaml",
+    "javascript/shelljs/security/shelljs-exec-injection.yaml",
+    "javascript/thenify/security/audit/multiargs-code-execution.yaml",
+    "javascript/vm2/security/audit/vm2-code-injection.yaml",
+    "javascript/vm2/security/audit/vm2-context-injection.yaml",
+    "javascript/wkhtmltoimage/security/audit/wkhtmltoimage-injection.yaml",
+    "javascript/wkhtmltopdf/security/audit/wkhtmltopdf-injection.yaml",
+    "javascript/xml2json/security/audit/xml2json-xxe.yaml",
+    "typescript/angular/security/audit/angular-domsanitizer.yaml",
+    "typescript/lang/security/audit/cors-regex-wildcard.yaml",
+    "typescript/mcp/security/mcp-command-injection-typescript.yaml",
+    "typescript/mcp/security/mcp-ssrf-typescript.yaml",
+    "typescript/nestjs/security/audit/nestjs-header-cors-any.yaml",
+    "typescript/nestjs/security/audit/nestjs-header-xss-disabled.yaml",
+    "typescript/nestjs/security/audit/nestjs-open-redirect.yaml",
+    "typescript/react/security/audit/react-dangerouslysetinnerhtml.yaml",
+    "typescript/react/security/audit/react-href-var.yaml",
+    "typescript/react/security/audit/react-jwt-decoded-property.yaml",
+    "typescript/react/security/audit/react-jwt-in-localstorage.yaml",
+    "typescript/react/security/audit/react-unsanitized-method.yaml",
+    "typescript/react/security/audit/react-unsanitized-property.yaml",
+    "typescript/react/security/react-insecure-request.yaml",
+    "typescript/react/security/react-markdown-insecure-html.yaml"
+  ],
+  "rules": [
+    {
+      "id": "ldap-injection",
+      "file": "csharp/dotnet/security/audit/ldap-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "mass-assignment",
+      "file": "csharp/dotnet/security/audit/mass-assignment.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "misconfigured-lockout-option",
+      "file": "csharp/dotnet/security/audit/misconfigured-lockout-option.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "missing-or-broken-authorization",
+      "file": "csharp/dotnet/security/audit/missing-or-broken-authorization.yaml",
+      "severity": "INFO"
+    },
+    {
+      "id": "open-directory-listing",
+      "file": "csharp/dotnet/security/audit/open-directory-listing.yaml",
+      "severity": "INFO"
+    },
+    {
+      "id": "xpath-injection",
+      "file": "csharp/dotnet/security/audit/xpath-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "mvc-missing-antiforgery",
+      "file": "csharp/dotnet/security/mvc-missing-antiforgery.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "razor-template-injection",
+      "file": "csharp/dotnet/security/razor-template-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "use_deprecated_cipher_algorithm",
+      "file": "csharp/dotnet/security/use_deprecated_cipher_algorithm.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "use_ecb_mode",
+      "file": "csharp/dotnet/security/use_ecb_mode.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "use_weak_rng_for_keygeneration",
+      "file": "csharp/dotnet/security/use_weak_rng_for_keygeneration.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "use_weak_rsa_encryption_padding",
+      "file": "csharp/dotnet/security/use_weak_rsa_encryption_padding.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "jwt-tokenvalidationparameters-no-expiry-validation",
+      "file": "csharp/lang/security/ad/jwt-tokenvalidationparameters-no-expiry-validation.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "X509-subject-name-validation",
+      "file": "csharp/lang/security/cryptography/X509-subject-name-validation.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "X509Certificate2-privkey",
+      "file": "csharp/lang/security/cryptography/X509Certificate2-privkey.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "unsigned-security-token",
+      "file": "csharp/lang/security/cryptography/unsigned-security-token.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "unsafe-path-combine",
+      "file": "csharp/lang/security/filesystem/unsafe-path-combine.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "http-listener-wildcard-bindings",
+      "file": "csharp/lang/security/http/http-listener-wildcard-bindings.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "os-command-injection",
+      "file": "csharp/lang/security/injections/os-command.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "insecure-binaryformatter-deserialization",
+      "file": "csharp/lang/security/insecure-deserialization/binary-formatter.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "data-contract-resolver",
+      "file": "csharp/lang/security/insecure-deserialization/data-contract-resolver.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-fastjson-deserialization",
+      "file": "csharp/lang/security/insecure-deserialization/fast-json.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-fspickler-deserialization",
+      "file": "csharp/lang/security/insecure-deserialization/fs-pickler.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-typefilterlevel-full",
+      "file": "csharp/lang/security/insecure-deserialization/insecure-typefilterlevel-full.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-javascriptserializer-deserialization",
+      "file": "csharp/lang/security/insecure-deserialization/javascript-serializer.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "insecure-losformatter-deserialization",
+      "file": "csharp/lang/security/insecure-deserialization/los-formatter.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-netdatacontract-deserialization",
+      "file": "csharp/lang/security/insecure-deserialization/net-data-contract.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-newtonsoft-deserialization",
+      "file": "csharp/lang/security/insecure-deserialization/newtonsoft.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-soapformatter-deserialization",
+      "file": "csharp/lang/security/insecure-deserialization/soap-formatter.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "memory-marshal-create-span",
+      "file": "csharp/lang/security/memory/memory-marshal-create-span.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "missing-hsts-header",
+      "file": "csharp/lang/security/missing-hsts-header.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "open-redirect",
+      "file": "csharp/lang/security/open-redirect.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "regular-expression-dos-infinite-timeout",
+      "file": "csharp/lang/security/regular-expression-dos/regular-expression-dos-infinite-timeout.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "regular-expression-dos",
+      "file": "csharp/lang/security/regular-expression-dos/regular-expression-dos.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "csharp-sqli",
+      "file": "csharp/lang/security/sqli/csharp-sqli.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "ssrf",
+      "file": "csharp/lang/security/ssrf/http-client.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "ssrf",
+      "file": "csharp/lang/security/ssrf/rest-client.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "ssrf",
+      "file": "csharp/lang/security/ssrf/web-client.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "ssrf",
+      "file": "csharp/lang/security/ssrf/web-request.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "stacktrace-disclosure",
+      "file": "csharp/lang/security/stacktrace-disclosure.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "xmldocument-unsafe-parser-override",
+      "file": "csharp/lang/security/xxe/xmldocument-unsafe-parser-override.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "xmlreadersettings-unsafe-parser-override",
+      "file": "csharp/lang/security/xxe/xmlreadersettings-unsafe-parser-override.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "xmltextreader-unsafe-defaults",
+      "file": "csharp/lang/security/xxe/xmltextreader-unsafe-defaults.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "ajv-allerrors-true",
+      "file": "javascript/ajv/security/audit/ajv-allerrors-true.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-angular-element-methods",
+      "file": "javascript/angular/security/detect-angular-element-methods.yaml",
+      "severity": "INFO"
+    },
+    {
+      "id": "detect-angular-element-taint",
+      "file": "javascript/angular/security/detect-angular-element-taint.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-angular-open-redirect",
+      "file": "javascript/angular/security/detect-angular-open-redirect.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "detect-angular-resource-loading",
+      "file": "javascript/angular/security/detect-angular-resource-loading.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-angular-sce-disabled",
+      "file": "javascript/angular/security/detect-angular-sce-disabled.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "detect-angular-trust-as-css-method",
+      "file": "javascript/angular/security/detect-angular-trust-as-css.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-angular-trust-as-html-method",
+      "file": "javascript/angular/security/detect-angular-trust-as-html-method.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-angular-trust-as-js-method",
+      "file": "javascript/angular/security/detect-angular-trust-as-js-method.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-angular-trust-as-method",
+      "file": "javascript/angular/security/detect-angular-trust-as-method.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-angular-trust-as-resourceurl-method",
+      "file": "javascript/angular/security/detect-angular-trust-as-resourceurl-method.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-angular-trust-as-url-method",
+      "file": "javascript/angular/security/detect-angular-trust-as-url-method.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-angular-translateprovider-translations-method",
+      "file": "javascript/angular/security/detect-third-party-angular-translate.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "apollo-axios-ssrf",
+      "file": "javascript/apollo/security/apollo-axios-ssrf.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "unsafe-argon2-config",
+      "file": "javascript/argon2/security/unsafe-argon2-config.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-replaceall-sanitization",
+      "file": "javascript/audit/detect-replaceall-sanitization.yaml",
+      "severity": "INFO"
+    },
+    {
+      "id": "detect-child-process",
+      "file": "javascript/aws-lambda/security/detect-child-process.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "dynamodb-request-object",
+      "file": "javascript/aws-lambda/security/dynamodb-request-object.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "knex-sqli",
+      "file": "javascript/aws-lambda/security/knex-sqli.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "mysql-sqli",
+      "file": "javascript/aws-lambda/security/mysql-sqli.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "pg-sqli",
+      "file": "javascript/aws-lambda/security/pg-sqli.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "sequelize-sqli",
+      "file": "javascript/aws-lambda/security/sequelize-sqli.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "tainted-eval",
+      "file": "javascript/aws-lambda/security/tainted-eval.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "tainted-html-response",
+      "file": "javascript/aws-lambda/security/tainted-html-response.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "tainted-html-string",
+      "file": "javascript/aws-lambda/security/tainted-html-string.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "tainted-sql-string",
+      "file": "javascript/aws-lambda/security/tainted-sql-string.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "vm-runincontext-injection",
+      "file": "javascript/aws-lambda/security/vm-runincontext-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "tofastproperties-code-execution",
+      "file": "javascript/bluebird/security/audit/tofastproperties-code-execution.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "dom-based-xss",
+      "file": "javascript/browser/security/dom-based-xss.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "eval-detected",
+      "file": "javascript/browser/security/eval-detected.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-document-method",
+      "file": "javascript/browser/security/insecure-document-method.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "insecure-innerhtml",
+      "file": "javascript/browser/security/insecure-innerhtml.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "insufficient-postmessage-origin-validation",
+      "file": "javascript/browser/security/insufficient-postmessage-origin-validation.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "js-open-redirect-from-function",
+      "file": "javascript/browser/security/open-redirect-from-function.yaml",
+      "severity": "INFO"
+    },
+    {
+      "id": "js-open-redirect",
+      "file": "javascript/browser/security/open-redirect.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "raw-html-concat",
+      "file": "javascript/browser/security/raw-html-concat.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "raw-html-join",
+      "file": "javascript/browser/security/raw-html-join.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "wildcard-postmessage-configuration",
+      "file": "javascript/browser/security/wildcard-postmessage-configuration.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "chrome-remote-interface-compilescript-injection",
+      "file": "javascript/chrome-remote-interface/security/audit/chrome-remote-interface-compilescript-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "deno-dangerous-run",
+      "file": "javascript/deno/security/audit/deno-dangerous-run.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "express-check-csurf-middleware-usage",
+      "file": "javascript/express/security/audit/express-check-csurf-middleware-usage.yaml",
+      "severity": "INFO"
+    },
+    {
+      "id": "express-check-directory-listing",
+      "file": "javascript/express/security/audit/express-check-directory-listing.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-cookie-session-default-name",
+      "file": "javascript/express/security/audit/express-cookie-settings.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-cookie-session-no-domain",
+      "file": "javascript/express/security/audit/express-cookie-settings.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-cookie-session-no-expires",
+      "file": "javascript/express/security/audit/express-cookie-settings.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-cookie-session-no-httponly",
+      "file": "javascript/express/security/audit/express-cookie-settings.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-cookie-session-no-path",
+      "file": "javascript/express/security/audit/express-cookie-settings.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-cookie-session-no-secure",
+      "file": "javascript/express/security/audit/express-cookie-settings.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-detect-notevil-usage",
+      "file": "javascript/express/security/audit/express-detect-notevil-usage.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-jwt-not-revoked",
+      "file": "javascript/express/security/audit/express-jwt-not-revoked.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-libxml-noent",
+      "file": "javascript/express/security/audit/express-libxml-noent.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "express-libxml-vm-noent",
+      "file": "javascript/express/security/audit/express-libxml-vm-noent.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-open-redirect",
+      "file": "javascript/express/security/audit/express-open-redirect.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-path-join-resolve-traversal",
+      "file": "javascript/express/security/audit/express-path-join-resolve-traversal.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-res-sendfile",
+      "file": "javascript/express/security/audit/express-res-sendfile.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-session-hardcoded-secret",
+      "file": "javascript/express/security/audit/express-session-hardcoded-secret.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-ssrf",
+      "file": "javascript/express/security/audit/express-ssrf.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-third-party-object-deserialization",
+      "file": "javascript/express/security/audit/express-third-party-object-deserialization.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-xml2json-xxe-event",
+      "file": "javascript/express/security/audit/express-xml2json-xxe-event.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "unknown-value-in-redirect",
+      "file": "javascript/express/security/audit/possible-user-input-redirect.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "remote-property-injection",
+      "file": "javascript/express/security/audit/remote-property-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "res-render-injection",
+      "file": "javascript/express/security/audit/res-render-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "direct-response-write",
+      "file": "javascript/express/security/audit/xss/direct-response-write.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "escape-function-overwrite",
+      "file": "javascript/express/security/audit/xss/mustache/escape-function-overwrite.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "cors-misconfiguration",
+      "file": "javascript/express/security/cors-misconfiguration.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-data-exfiltration",
+      "file": "javascript/express/security/express-data-exfiltration.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-expat-xxe",
+      "file": "javascript/express/security/express-expat-xxe.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "express-insecure-template-usage",
+      "file": "javascript/express/security/express-insecure-template-usage.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-jwt-hardcoded-secret",
+      "file": "javascript/express/security/express-jwt-hardcoded-secret.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-phantom-injection",
+      "file": "javascript/express/security/express-phantom-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "express-puppeteer-injection",
+      "file": "javascript/express/security/express-puppeteer-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "express-sandbox-code-injection",
+      "file": "javascript/express/security/express-sandbox-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "express-vm-injection",
+      "file": "javascript/express/security/express-vm-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "express-vm2-injection",
+      "file": "javascript/express/security/express-vm2-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-wkhtmltoimage-injection",
+      "file": "javascript/express/security/express-wkhtml-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "express-wkhtmltopdf-injection",
+      "file": "javascript/express/security/express-wkhtml-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "express-xml2json-xxe",
+      "file": "javascript/express/security/express-xml2json-xxe.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "raw-html-format",
+      "file": "javascript/express/security/injection/raw-html-format.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "tainted-sql-string",
+      "file": "javascript/express/security/injection/tainted-sql-string.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "require-request",
+      "file": "javascript/express/security/require-request.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "x-frame-options-misconfiguration",
+      "file": "javascript/express/security/x-frame-options-misconfiguration.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-createnodesfrommarkup",
+      "file": "javascript/fbjs/security/audit/insecure-createnodesfrommarkup.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "grpc-nodejs-insecure-connection",
+      "file": "javascript/grpc/security/grpc-nodejs-insecure-connection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "intercom-settings-user-identifier-without-user-hash",
+      "file": "javascript/intercom/security/audit/intercom-settings-user-identifier-without-user-hash.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "jose-exposed-data",
+      "file": "javascript/jose/security/audit/jose-exposed-data.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "hardcoded-jwt-secret",
+      "file": "javascript/jose/security/jwt-hardcode.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "jwt-none-alg",
+      "file": "javascript/jose/security/jwt-none-alg.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "jquery-insecure-method",
+      "file": "javascript/jquery/security/audit/jquery-insecure-method.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "jquery-insecure-selector",
+      "file": "javascript/jquery/security/audit/jquery-insecure-selector.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "prohibit-jquery-html",
+      "file": "javascript/jquery/security/audit/prohibit-jquery-html.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "jwt-decode-without-verify",
+      "file": "javascript/jsonwebtoken/security/audit/jwt-decode-without-verify.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "jwt-exposed-data",
+      "file": "javascript/jsonwebtoken/security/audit/jwt-exposed-data.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "hardcoded-jwt-secret",
+      "file": "javascript/jsonwebtoken/security/jwt-hardcode.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "jwt-none-alg",
+      "file": "javascript/jsonwebtoken/security/jwt-none-alg.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "jwt-simple-noverify",
+      "file": "javascript/jwt-simple/security/jwt-simple-noverify.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "code-string-concat",
+      "file": "javascript/lang/security/audit/code-string-concat.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "dangerous-spawn-shell",
+      "file": "javascript/lang/security/audit/dangerous-spawn-shell.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "detect-non-literal-fs-filename",
+      "file": "javascript/lang/security/audit/detect-non-literal-fs-filename.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-non-literal-regexp",
+      "file": "javascript/lang/security/audit/detect-non-literal-regexp.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-non-literal-require",
+      "file": "javascript/lang/security/audit/detect-non-literal-require.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-redos",
+      "file": "javascript/lang/security/audit/detect-redos.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "hardcoded-hmac-key",
+      "file": "javascript/lang/security/audit/hardcoded-hmac-key.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "incomplete-sanitization",
+      "file": "javascript/lang/security/audit/incomplete-sanitization.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "md5-used-as-password",
+      "file": "javascript/lang/security/audit/md5-used-as-password.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "path-join-resolve-traversal",
+      "file": "javascript/lang/security/audit/path-traversal/path-join-resolve-traversal.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "prototype-pollution-assignment",
+      "file": "javascript/lang/security/audit/prototype-pollution/prototype-pollution-assignment.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "prototype-pollution-loop",
+      "file": "javascript/lang/security/audit/prototype-pollution/prototype-pollution-loop.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "spawn-shell-true",
+      "file": "javascript/lang/security/audit/spawn-shell-true.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "node-knex-sqli",
+      "file": "javascript/lang/security/audit/sqli/node-knex-sqli.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "node-mssql-sqli",
+      "file": "javascript/lang/security/audit/sqli/node-mssql-sqli.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "node-mysql-sqli",
+      "file": "javascript/lang/security/audit/sqli/node-mysql-sqli.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "node-postgres-sqli",
+      "file": "javascript/lang/security/audit/sqli/node-postgres-sqli.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "unknown-value-with-script-tag",
+      "file": "javascript/lang/security/audit/unknown-value-with-script-tag.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "unsafe-dynamic-method",
+      "file": "javascript/lang/security/audit/unsafe-dynamic-method.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "unsafe-formatstring",
+      "file": "javascript/lang/security/audit/unsafe-formatstring.yaml",
+      "severity": "INFO"
+    },
+    {
+      "id": "detect-buffer-noassert",
+      "file": "javascript/lang/security/detect-buffer-noassert.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-child-process",
+      "file": "javascript/lang/security/detect-child-process.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "detect-disable-mustache-escape",
+      "file": "javascript/lang/security/detect-disable-mustache-escape.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-eval-with-expression",
+      "file": "javascript/lang/security/detect-eval-with-expression.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-no-csrf-before-method-override",
+      "file": "javascript/lang/security/detect-no-csrf-before-method-override.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "detect-pseudoRandomBytes",
+      "file": "javascript/lang/security/detect-pseudoRandomBytes.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "html-in-template-string",
+      "file": "javascript/lang/security/html-in-template-string.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "insecure-object-assign",
+      "file": "javascript/lang/security/insecure-object-assign.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "spawn-git-clone",
+      "file": "javascript/lang/security/spawn-git-clone.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "monaco-hover-htmlsupport",
+      "file": "javascript/monaco-editor/security/audit/monaco-hover-htmlsupport.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "aead-no-final",
+      "file": "javascript/node-crypto/security/aead-no-final.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "create-de-cipher-no-iv",
+      "file": "javascript/node-crypto/security/create-de-cipher-no-iv.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "gcm-no-tag-length",
+      "file": "javascript/node-crypto/security/gcm-no-tag-length.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "expat-xxe",
+      "file": "javascript/node-expat/security/audit/expat-xxe.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "hardcoded-passport-secret",
+      "file": "javascript/passport-jwt/security/passport-hardcode.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "phantom-injection",
+      "file": "javascript/phantom/security/audit/phantom-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "playwright-addinitscript-code-injection",
+      "file": "javascript/playwright/security/audit/playwright-addinitscript-code-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "playwright-evaluate-arg-injection",
+      "file": "javascript/playwright/security/audit/playwright-evaluate-arg-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "playwright-evaluate-code-injection",
+      "file": "javascript/playwright/security/audit/playwright-evaluate-code-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "playwright-exposed-chrome-devtools",
+      "file": "javascript/playwright/security/audit/playwright-exposed-chrome-devtools.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "playwright-goto-injection",
+      "file": "javascript/playwright/security/audit/playwright-goto-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "playwright-setcontent-injection",
+      "file": "javascript/playwright/security/audit/playwright-setcontent-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "puppeteer-evaluate-arg-injection",
+      "file": "javascript/puppeteer/security/audit/puppeteer-evaluate-arg-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "puppeteer-evaluate-code-injection",
+      "file": "javascript/puppeteer/security/audit/puppeteer-evaluate-code-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "puppeteer-exposed-chrome-devtools",
+      "file": "javascript/puppeteer/security/audit/puppeteer-exposed-chrome-devtools.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "puppeteer-goto-injection",
+      "file": "javascript/puppeteer/security/audit/puppeteer-goto-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "puppeteer-setcontent-injection",
+      "file": "javascript/puppeteer/security/audit/puppeteer-setcontent-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "sandbox-code-injection",
+      "file": "javascript/sandbox/security/audit/sandbox-code-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "sax-xxe",
+      "file": "javascript/sax/security/audit/sax-xxe.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "sequelize-enforce-tls",
+      "file": "javascript/sequelize/security/audit/sequelize-enforce-tls.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "express-sequelize-injection",
+      "file": "javascript/sequelize/security/audit/sequelize-injection-express.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "sequelize-raw-query",
+      "file": "javascript/sequelize/security/audit/sequelize-raw-query.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "sequelize-tls-disabled-cert-validation",
+      "file": "javascript/sequelize/security/audit/sequelize-tls-disabled-cert-validation.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "sequelize-weak-tls-version",
+      "file": "javascript/sequelize/security/audit/sequelize-weak-tls-version.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "unsafe-serialize-javascript",
+      "file": "javascript/serialize-javascript/security/audit/unsafe-serialize-javascript.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "shelljs-exec-injection",
+      "file": "javascript/shelljs/security/shelljs-exec-injection.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "multiargs-code-execution",
+      "file": "javascript/thenify/security/audit/multiargs-code-execution.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "vm2-code-injection",
+      "file": "javascript/vm2/security/audit/vm2-code-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "vm2-context-injection",
+      "file": "javascript/vm2/security/audit/vm2-context-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "wkhtmltoimage-injection",
+      "file": "javascript/wkhtmltoimage/security/audit/wkhtmltoimage-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "wkhtmltopdf-injection",
+      "file": "javascript/wkhtmltopdf/security/audit/wkhtmltopdf-injection.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "xml2json-xxe",
+      "file": "javascript/xml2json/security/audit/xml2json-xxe.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "angular-bypasssecuritytrust",
+      "file": "typescript/angular/security/audit/angular-domsanitizer.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "cors-regex-wildcard",
+      "file": "typescript/lang/security/audit/cors-regex-wildcard.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "mcp-command-injection-typescript",
+      "file": "typescript/mcp/security/mcp-command-injection-typescript.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "mcp-ssrf-typescript",
+      "file": "typescript/mcp/security/mcp-ssrf-typescript.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "nestjs-header-cors-any",
+      "file": "typescript/nestjs/security/audit/nestjs-header-cors-any.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "nestjs-header-xss-disabled",
+      "file": "typescript/nestjs/security/audit/nestjs-header-xss-disabled.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "nestjs-open-redirect",
+      "file": "typescript/nestjs/security/audit/nestjs-open-redirect.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "react-dangerouslysetinnerhtml",
+      "file": "typescript/react/security/audit/react-dangerouslysetinnerhtml.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "react-href-var",
+      "file": "typescript/react/security/audit/react-href-var.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "react-jwt-decoded-property",
+      "file": "typescript/react/security/audit/react-jwt-decoded-property.yaml",
+      "severity": "INFO"
+    },
+    {
+      "id": "react-jwt-in-localstorage",
+      "file": "typescript/react/security/audit/react-jwt-in-localstorage.yaml",
+      "severity": "INFO"
+    },
+    {
+      "id": "react-unsanitized-method",
+      "file": "typescript/react/security/audit/react-unsanitized-method.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "react-unsanitized-property",
+      "file": "typescript/react/security/audit/react-unsanitized-property.yaml",
+      "severity": "WARNING"
+    },
+    {
+      "id": "react-insecure-request",
+      "file": "typescript/react/security/react-insecure-request.yaml",
+      "severity": "ERROR"
+    },
+    {
+      "id": "react-markdown-insecure-html",
+      "file": "typescript/react/security/react-markdown-insecure-html.yaml",
+      "severity": "WARNING"
+    }
+  ]
+}
