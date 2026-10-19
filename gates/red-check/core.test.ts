@@ -10,6 +10,13 @@ describe('testCommandLine — the file as one literal shell argument (review #26
   it('double-quotes the file for cmd.exe on Windows', () => {
     expect(testCommandLine('npx vitest run', 'a&b c.test.ts', 'win32')).toBe('npx vitest run "a&b c.test.ts"');
   });
+
+  it('keeps a % literal for cmd.exe, which expands %VAR% even inside double quotes', () => {
+    // Each % leaves the quotes as ^%: between two of them the name read is `"PATH"^`, which no
+    // variable has, so nothing expands, and the caret then drops out.
+    expect(testCommandLine('npx vitest run', 'a%PATH%b.test.ts', 'win32')).toBe('npx vitest run "a"^%"PATH"^%"b.test.ts"');
+    expect(testCommandLine('npx vitest run', '100%.test.ts', 'linux')).toBe("npx vitest run '100%.test.ts'");
+  });
 });
 
 describe('redCheck', () => {

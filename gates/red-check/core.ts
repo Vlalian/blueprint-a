@@ -19,10 +19,11 @@ const couldNotRun = (exit: number) => exit < 0 || NEVER_RAN.has(exit);
  * spawnSync({ shell: true }) starts: sh on POSIX, cmd.exe on Windows. Unquoted, a file named
  * `a$(x).test.ts` ran `x` (review #26). In sh, single quotes are literal and a quote inside is
  * closed, escaped and reopened. In cmd.exe, double quotes keep & | < > ^ and spaces literal, and
- * a Windows file name cannot hold a double quote.
+ * a Windows file name cannot hold a double quote; but cmd expands %VAR% inside quotes too, so each
+ * % steps out of them as ^%: the name between two is then `"x"^`, which no variable has.
  */
 export function testCommandLine(command: string, file: string, platform: string): string {
-  const quoted = platform === 'win32' ? `"${file}"` : `'${file.replaceAll("'", "'\\''")}'`;
+  const quoted = platform === 'win32' ? `"${file.replaceAll('%', '"^%"')}"` : `'${file.replaceAll("'", "'\\''")}'`;
   return `${command} ${quoted}`;
 }
 

@@ -20,7 +20,7 @@ import type { FunctionComplexity } from './complexity.ts';
 
 /** The part of istanbul's per-file coverage this needs. */
 export type FileCoverage = {
-  statementMap: Record<string, { start: { line: number }; end: { line: number } }>;
+  statementMap: Record<string, { start: { line: number; column?: number }; end: { line: number } }>;
   /** Statement id → how many times it ran. */
   s: Record<string, number>;
 };
@@ -42,6 +42,17 @@ function isNestedIn(inner: FunctionComplexity, outer: FunctionComplexity): boole
 }
 
 /**
+ * Whether a statement starting at `start` starts inside `fn`. On the
+ * function's first line it must start at or after the function's column: a
+ * parent's `return xs.map((x) => {` starts on the callback's line but is the
+ * parent's. Without both columns the line decides.
+ */
+function startsIn(start: { line: number; column?: number }, fn: FunctionComplexity): boolean {
+  if (start.line < fn.startLine || start.line > fn.endLine) return false;
+  return start.line > fn.startLine || (start.column ?? Infinity) >= (fn.startColumn ?? 0);
+}
+
+/**
  * Scores every function, attributing each statement to the innermost function
  * that contains it.
  *
@@ -58,11 +69,11 @@ export function scoreCrap(
 
     const own = coverage
       ? Object.entries(coverage.statementMap).filter(([, { start }]) => {
-          if (start.line < fn.startLine || start.line > fn.endLine) return false;
+          if (!startsIn(start, fn)) return false;
           // A statement inside a nested function belongs to that function, not
           // to this one — the same rule complexity already applies, so an
           // untested callback cannot drag down the function that holds it.
-          return !nested.some((n) => start.line >= n.startLine && start.line <= n.endLine);
+          return !nested.some((n) => startsIn(start, n));
         })
       : [];
 

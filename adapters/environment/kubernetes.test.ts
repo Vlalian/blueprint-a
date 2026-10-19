@@ -175,6 +175,8 @@ describe('errorRate', () => {
     expect(() => rate(ok('prometheus-bad-query.json'))).toThrow('Prometheus refused the query: invalid parameter "query"');
     expect(() => rate({ status: 0, stdout: '{"status":"error"}', stderr: '' })).toThrow('Prometheus refused the query: error');
     expect(() => rate(ok('prometheus-nan.json'))).toThrow('Prometheus returned a value that is not a number for sum(increase(e{ns="shop",app="web"}[600s]))');
+    expect(() => rate({ status: 0, stdout: '{"status":"success"}', stderr: '' })).toThrow('Prometheus answered success with no result for sum(increase(e{ns="shop",app="web"}[600s]))');
+    expect(() => rate({ status: 0, stdout: '{"status":"success","data":{}}', stderr: '' })).toThrow('Prometheus answered success with no result for sum(increase(e{ns="shop",app="web"}[600s]))');
     expect(() => rate({ status: 1, stdout: '', stderr: 'Error from server (ServiceUnavailable): the server is currently unable to handle the request\n' })).toThrow(
       'kubectl get --raw failed: Error from server (ServiceUnavailable)',
     );

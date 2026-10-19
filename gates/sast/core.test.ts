@@ -15,6 +15,11 @@ describe('ruleOf', () => {
     expect(ruleOf('C:.Users.me.typescript.react.security.x')).toBe('typescript.react.security.x');
   });
 
+  it('strips up to the last language folder, so a rules path holding a language name is stripped too', () => {
+    expect(ruleOf('home.javascript.work.gates.sast.rules.csharp.lang.security.x')).toBe('csharp.lang.security.x');
+    expect(ruleOf('typescript.rules.javascript.lang.y')).toBe('javascript.lang.y');
+  });
+
   it('keeps an id from another language folder as Semgrep gave it', () => {
     expect(ruleOf('my.own.rule')).toBe('my.own.rule');
     expect(ruleOf('notjavascript.x')).toBe('notjavascript.x');

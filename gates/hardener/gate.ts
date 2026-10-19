@@ -24,13 +24,15 @@ export function gradedSources(changed: string[]): string[] {
 /**
  * Printed under onkel's report when it escalates, so the hardener reads it at the moment it is
  * blocked and the Stop gate's escalation carries it: a mutant no test can kill is simplified
- * away by the cleaner in an extra round (ticket 40), and suppressed (line-level, with a reason) only when nothing simpler exists.
+ * away by the cleaner in one pass over its module (tickets 40, 61), and suppressed (line-level,
+ * with a reason and the proof) only when it survives that pass and no refactoring removes it.
  */
 export const EQUIVALENT_MUTANT_HINT = [
-  'hardener: a mutant no test can kill (equivalent) is not yours to suppress. End with the exact edit that removes it,',
+  'hardener: a mutant no test can kill (equivalent) marks redundant code: simplify first. End with the exact edit that removes it,',
   '  SIMPLIFY <the mutant file>:<its line> / before: <the line as it is> / after: <the line simplified> / why: <why no caller can tell>,',
-  '  for the cleaner to apply; only when no simpler code exists, SUPPRESS <file>:<line> <Mutator> with the',
-  '  line-level comment and its reason. See skills/hardener/SKILL.md, rule 7.',
+  '  and the cleaner makes one simplification pass over its module. Only for a mutant that survives that pass and that',
+  '  no refactoring can remove: SUPPRESS <file>:<line> <Mutator> with the line-level comment, its reason, and why not simpler.',
+  '  See skills/hardener/SKILL.md, rule 7.',
 ].join('\n');
 
 /** onkel's flags: the base, and --json when a cloud role's gate (ticket 32) asks for its result as data. */

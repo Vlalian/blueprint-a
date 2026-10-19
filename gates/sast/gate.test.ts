@@ -154,16 +154,16 @@ describe('sastLines', () => {
 
 describe('changedFiles', () => {
   it('lists the files changed since the base and the untracked ones, once each', () => {
-    const git = (args: string[]) => ({ status: 0, stdout: args[0] === 'diff' ? 'src/a.ts\nsrc/b.cs\n' : 'src/a.ts\nnew.ts\n' });
-    expect(changedFiles('main', git)).toEqual(['src/a.ts', 'src/b.cs', 'new.ts']);
+    const git = (args: string[]) => ({ status: 0, stdout: args[0] === 'diff' ? 'src/a.ts\0src/b c.cs\0' : 'src/a.ts\0new.ts\0' });
+    expect(changedFiles('main', git)).toEqual(['src/a.ts', 'src/b c.cs', 'new.ts']);
   });
 
   it('asks git for the changes that leave a file, not deletions', () => {
     const seen: string[][] = [];
     changedFiles('main', (args) => (seen.push(args), { status: 0, stdout: '' }));
     expect(seen).toEqual([
-      ['diff', '--name-only', '--diff-filter=d', 'main', '--'],
-      ['ls-files', '--others', '--exclude-standard'],
+      ['diff', '--name-only', '--relative', '-z', '--diff-filter=d', 'main', '--'],
+      ['ls-files', '-z', '--others', '--exclude-standard'],
     ]);
   });
 
@@ -176,7 +176,7 @@ describe('sastCli', () => {
   const cliIo = (over: Partial<SastCliIo> = {}) => {
     const { io, calls, written } = fakeIo('new-error');
     const git = (args: string[]) => {
-      if (args[0] === 'diff') return { status: 0, stdout: 'src/ping.ts\n' };
+      if (args[0] === 'diff') return { status: 0, stdout: 'src/ping.ts\0' };
       if (args[0] === 'show') return { status: 128, stdout: '' };
       return { status: 0, stdout: '' };
     };
@@ -222,7 +222,7 @@ describe('sastSince', () => {
       return { status: 0, stdout: fileIn(join('at-base', 'base'), 'src/ping.ts')! };
     };
     expect(sastSince('HEAD', opts(['src/ping.ts']), { ...io, git }).pass).toBe(true);
-    expect(shown).toEqual([['show', 'HEAD:src/ping.ts']]);
+    expect(shown).toEqual([['show', 'HEAD:./src/ping.ts']]);
     expect(calls.map((c) => c.cwd)).toEqual(['repo', TEMP]);
   });
 });

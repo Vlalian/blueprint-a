@@ -1,6 +1,6 @@
 {
   "name": "blueprint-a",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A gated agent workflow, harness-neutral: docs plus the gates as code",
   "license": "MIT",
   "private": true,

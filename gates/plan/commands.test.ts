@@ -17,6 +17,18 @@ describe('commandsIn', () => {
     expect(commandsIn(plan)).toEqual(['npm run lint', 'git push --force', 'npm test', 'npx tsc --noEmit']);
   });
 
+  it('reads a command word only when a space or the end follows it: `node:fs` and `git-rules.ts` are names, not commands', () => {
+    expect(commandsIn('Read it with `readFileSync` from `node:fs`, as `git-rules.ts` and `npm-check` do.')).toEqual([]);
+    expect(commandsIn('Run `node scripts/x.ts` and `git`.')).toEqual(['node scripts/x.ts', 'git']);
+  });
+
+  it('reads a command word with a Windows extension, in any case, as a command', () => {
+    const plan = 'Then `git.exe push --force`, `npx.cmd evil-pkg`, `Node.EXE x.js`, `powershell.exe -c x`, `GIT push` and `del.bat`.';
+    expect(commandsIn(plan)).toEqual(['git.exe push --force', 'npx.cmd evil-pkg', 'Node.EXE x.js', 'powershell.exe -c x', 'GIT push', 'del.bat']);
+    expect(commandsIn('Not `git.exercise`, `node.js` or `npm.config.ts`.')).toEqual([]);
+    expect(commandFindings(commandsIn('Run `git.exe push --force`.'), DEFAULT_ALLOW)).toHaveLength(1);
+  });
+
   it('trims indentation from fenced lines and padding inside inline code', () => {
     expect(commandsIn('```sh\n  npm run lint  \n```\nThen ` git push `.')).toEqual(['npm run lint', 'git push']);
   });

@@ -34,7 +34,8 @@ export function gitChangesIo(cwd: string): ChangesIo {
   return {
     diffStaged: () => git(cwd, 'diff', '--cached', '-U0', '--no-color'),
     diffSince: (ref) => git(cwd, 'diff', '-U0', '--no-color', ref, '--'),
-    untracked: () => git(cwd, 'ls-files', '--others', '--exclude-standard').split('\n').filter(Boolean),
+    // -z: NUL-separated and never quoted, so a name with a space or non-ASCII letter (core.quotePath) is read as it is.
+    untracked: () => git(cwd, 'ls-files', '-z', '--others', '--exclude-standard').split('\0').filter(Boolean),
     read: (file) => (existsSync(join(cwd, file)) ? readFileSync(join(cwd, file), 'utf8') : undefined),
   };
 }
