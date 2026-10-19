@@ -130,8 +130,12 @@ The sonarqube gate reads SonarQube through four calls (`adapters/sonarqube/sonar
 It waits for the analysis of the exact head commit and gives F1's verdicts:
 - `VERIFIED`: the analysis passed its quality gate.
 - `FAILED`: it failed, with the conditions that failed.
-- `NOT-VERIFIED`: the analysis is still running, only an older commit was analysed, or the
-  analysis failed. A stale analysis is never a pass.
+- `NOT-VERIFIED`: every `analysisFor` state but a finished analysis: the analysis is still
+  running (`running`), only an older commit was analysed (`stale`), the analysis failed
+  (`failed`), there is no analysis of the commit at all (`none`), or a pull request was given
+  without the task the scanner submitted for it, so no analysis can be bound to the commit
+  (`unbound`). A project with no quality gate is NOT-VERIFIED too. A stale analysis is never a
+  pass.
 
 A branch's analysis is matched by the commit it names. A pull request's analysis is matched by the
 task the scanner submitted for the commit (`ceTaskId` in `report-task.txt`): SonarQube's Web API
@@ -213,7 +217,7 @@ repository from it:
    cd blueprint-a
    git init -b main
    git add -A
-   git commit -m "Blueprint A v0.5.0"
+   git commit -m "Blueprint A v0.5.1"
    ```
 
 2. Create an empty repository on the host, with no README or licence, so the first push is not
