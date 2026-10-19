@@ -249,6 +249,16 @@ describe('jsTsAdapter.mutate', () => {
     expect(io.removed).toEqual([tmp]);
   });
 
+  it('fails when Stryker was killed (no exit status), even after it wrote a report that parses', () => {
+    const tmp = join(ROOT, 'tmp-1');
+    const io = fakeIo({}, (_tool, _args, self) => {
+      self.write(join(tmp, 'mutation.json'), report);
+      return { status: null, output: 'Killed' };
+    });
+    expect(() => jsTsAdapter({ runner: 'vitest', cwd: ROOT, coverageFile: undefined }, io).mutate(['src/sign.ts'])).toThrow('Stryker was killed before it finished; its report is not trusted:\nKilled');
+    expect(io.removed).toEqual([tmp]);
+  });
+
   it('fails with the Stryker output when it wrote no report', () => {
     const io = fakeIo({}, () => ({ status: 1, output: 'boom' }));
     expect(() => jsTsAdapter({ runner: 'vitest', cwd: ROOT, coverageFile: undefined }, io).mutate(['src/sign.ts'])).toThrow('Stryker wrote no report:\nboom');

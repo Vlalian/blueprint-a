@@ -5,7 +5,7 @@ The sonarqube gate (`gates/sonarqube/gate.ts`) reads SonarQube through four call
 
 | Call | Gives | Web API |
 |---|---|---|
-| `analysisFor(sha, ref)` | the analysis of that exact commit, or why there is none yet | branch: `api/project_analyses/search`, then `api/ce/component`; pull request: `api/ce/task` |
+| `analysisFor(sha, ref)` | the analysis of that exact commit, or why there is none yet | branch: `api/project_analyses/search`, then `api/ce/component` (and `api/project_branches/list` when a task has no branch key); pull request: `api/ce/task` |
 | `qualityGate(target)` | the quality gate's status (`OK`, `ERROR`, `NONE`) and its conditions | `api/qualitygates/project_status` |
 | `newIssues(ref)` | the issues in the ref's new code, every page | `api/issues/search` |
 | `newCodeMeasures(ref)` | coverage, duplication and issue counts on new code | `api/measures/component` |
@@ -52,6 +52,7 @@ under `server/sonar-webserver-webapi/src/main/` unless they start with `sonar-ws
 |---|---|---|---|
 | A branch's analyses with their commit | `GET api/project_analyses/search?project={key}&branch={branch}&ps=20` | `java/org/sonar/server/projectanalysis/ws/SearchAction.java`; `sonar-ws/src/main/protobuf/ws-projectanalyses.proto` (`Analysis.revision`) | 6.3; `branch` 6.6 |
 | The project's Compute Engine queue and last task | `GET api/ce/component?component={key}` | `java/org/sonar/server/ce/ws/ComponentAction.java`, `resources/org/sonar/server/ce/ws/component-example.json` | 5.2; `component` required from 8.8 |
+| The project's branches, to know the main one (its tasks carry no `branch` key) | `GET api/project_branches/list?project={key}` | `java/org/sonar/server/branch/ws/ListAction.java`, `resources/org/sonar/server/branch/ws/list-example.json` | 6.6 |
 | One Compute Engine task | `GET api/ce/task?id={ceTaskId}` | `java/org/sonar/server/ce/ws/TaskAction.java`, `sonar-ws/src/main/protobuf/ws-ce.proto` (`Task`, `TaskStatus`) | 5.2 |
 | One analysis's quality gate | `GET api/qualitygates/project_status?analysisId={id}` (or `projectKey` with `branch` or `pullRequest`) | `java/org/sonar/server/qualitygate/ws/ProjectStatusAction.java`, `resources/.../qualitygate/ws/project_status-example.json` | 5.3; `branch`, `pullRequest` 7.7 |
 | New-code issues | `GET api/issues/search?components={key}&pullRequest={id}` (or `branch`) `&inNewCodePeriod=true&ps=500&p={n}` | `java/org/sonar/server/issue/ws/SearchAction.java`, `sonar-ws/src/main/protobuf/ws-issues.proto`, `ws-commons.proto` | `components` 10.2 (was `componentKeys`); `inNewCodePeriod` 9.4 |

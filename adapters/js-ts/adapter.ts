@@ -80,8 +80,8 @@ export function functionLines(functions: FunctionScore[], coverage: FileCoverage
     const own = Object.entries(coverage.statementMap).filter(([, { start }]) => within(start.line, fn) && !nested.some((n) => within(start.line, n)));
     const lines = new Set(own.map(([, { start }]) => start.line));
     const covered = new Set(own.filter(([id]) => (coverage.s[id] ?? 0) > 0).map(([, { start }]) => start.line));
-    const { complexity: _, ...ref } = fn;
-    return { ...ref, lines: lines.size, covered: covered.size };
+    const { name, file, startLine, endLine } = fn;
+    return { name, file, startLine, endLine, lines: lines.size, covered: covered.size };
   });
 }
 
@@ -125,8 +125,10 @@ export function jsTsAdapter(options: AdapterOptions<JsRunner>, io: JsTsIo): Test
     return inTemp(io, (dir) => {
       const config = join(dir, 'stryker.json');
       io.write(config, JSON.stringify(strykerConfig(options.runner, paths, dir)));
-      // Stryker exits non-zero when a mutant survives: a verdict for the gate, not a crash.
-      const { output } = io.runBin('stryker', ['run', config]);
+      // Stryker exits non-zero when a mutant survives: a verdict for the gate, not a crash. No exit
+      // status at all is a kill (a signal, a timeout): a report it left then may be half a run.
+      const { status, output } = io.runBin('stryker', ['run', config]);
+      if (status === null) throw new Error(`Stryker was killed before it finished; its report is not trusted:\n${output}`);
       const reportPath = join(dir, 'mutation.json');
       if (!io.exists(reportPath)) throw new Error(`Stryker wrote no report:\n${output}`);
       const report = JSON.parse(io.read(reportPath)) as StrykerReport;

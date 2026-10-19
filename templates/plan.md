@@ -51,6 +51,18 @@ screenshot or recording, capturedAt, observed, verdict), that the file was saved
 ## Acceptance criteria -> behaviors
 - <criterion, word for word from the ticket> -> behaviors 1
 
+## Delete
+What goes, one line each, with plain paths: dead code, stubs and redundant guards the change removes
+first; a legacy API, removed in the same change its callers move off it; and each test that only
+covered a removed or replaced implementation, with the test at the new interface that replaces it:
+
+    - Code: src/old-parse.ts, the legacy parse() its callers move off in this change
+    - Test: tests/old-parse.test.ts::splits on commas -> tests/parse.test.ts::splits on commas
+
+The test-deletion guard lets a deleted test through only when a Test line lists it and the
+replacing test exists on the branch. Data, branches and outside services are never listed here:
+nothing in a build deletes them. Write `None.` when nothing goes.
+
 ## Out of scope
 None.
 

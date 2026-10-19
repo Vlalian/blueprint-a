@@ -121,11 +121,26 @@ const refQuery = (ref: SonarRef): Query => ('pullRequest' in ref ? { pullRequest
 type Analysis = { key: string; date: string; revision?: string };
 type Task = { id: string; status: string; componentKey: string; analysisId?: string; branch?: string; pullRequest?: string; executedAt?: string };
 
-/** Queued or running for the branch (api/ce/component's queue), or the branch's last task failed. */
+/** A task with neither a branch nor a pull request key: SonarQube gives the main branch's tasks no branch key. */
+const branchless = (t: Task | undefined) => t !== undefined && t.branch === undefined && t.pullRequest === undefined;
+
+/** Whether the branch is the project's main branch (api/project_branches/list). */
+function isMainBranch(call: Call, config: SonarConfig, branch: string): boolean {
+  const { branches } = call('api/project_branches/list', { project: config.projectKey }) as { branches: Array<{ name: string; isMain: boolean }> };
+  return branches.some((b) => b.isMain && b.name === branch);
+}
+
+/**
+ * Queued or running for the branch (api/ce/component's queue), or the branch's last task failed. A
+ * task is the branch's by its branch key, or, with no key, when the branch is the main one (asked
+ * only then); a pull request's task is never a branch's.
+ */
 function queueState(call: Call, config: SonarConfig, ref: { branch: string }): 'running' | 'failed' | undefined {
   const ce = call('api/ce/component', { component: config.projectKey }) as { queue: Task[]; current?: Task };
-  if (ce.queue.some((t) => t.branch === ref.branch)) return 'running';
-  return ce.current?.branch === ref.branch && ce.current.status === 'FAILED' ? 'failed' : undefined;
+  const main = [...ce.queue, ce.current].some(branchless) && isMainBranch(call, config, ref.branch);
+  const ofBranch = (t: Task | undefined) => t?.branch === ref.branch || (main && branchless(t));
+  if (ce.queue.some(ofBranch)) return 'running';
+  return ofBranch(ce.current) && ce.current!.status === 'FAILED' ? 'failed' : undefined;
 }
 
 /** A branch's analysis of the commit: the analyses name their commit as "revision". */

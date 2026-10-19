@@ -136,6 +136,22 @@ describe('sonarQubeAdapter: the analysis of a branch commit', () => {
     expect(replay(['api/project_analyses/search', ok('analyses-older-commit.json')], ['api/ce/component', noCurrent]).sonar.analysisFor(SHA, BRANCH)).toMatchObject({ state: 'stale' });
   });
 
+  it('reads a task with no branch key (SonarQube gives the main branch none) as the main branch’s, never a pull request’s', () => {
+    const main = { branch: 'main' };
+    const on = (ce: string) => replay(['api/project_analyses/search', ok('analyses-older-commit.json')], ['api/ce/component', ok(ce)], ['api/project_branches/list', ok('project-branches.json')]);
+    const queued = on('ce-component-main-queued.json');
+    expect(queued.sonar.analysisFor(SHA, main)).toEqual({ state: 'running' });
+    expect(query(queued.requests[2]!)).toEqual({ project: 'fabrikam-web' });
+    expect(on('ce-component-main-failed.json').sonar.analysisFor(SHA, main)).toEqual({ state: 'failed' });
+    // dev is not the main branch, and pull request 42's pending task is no branch's.
+    expect(on('ce-component-main-queued.json').sonar.analysisFor(SHA, BRANCH)).toMatchObject({ state: 'stale' });
+    expect(on('ce-component-main-failed.json').sonar.analysisFor(SHA, BRANCH)).toMatchObject({ state: 'stale' });
+    // Only a task with no branch key asks which branch is the main one.
+    const named = on('ce-component-running.json');
+    named.sonar.analysisFor(SHA, BRANCH);
+    expect(named.requests).toHaveLength(2);
+  });
+
   it('is none when the branch has no analysis and nothing runs', () => {
     expect(replay(['api/project_analyses/search', ok('analyses-none.json')], ['api/ce/component', ok('ce-component-idle.json')]).sonar.analysisFor(SHA, BRANCH)).toEqual({ state: 'none' });
   });

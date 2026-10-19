@@ -20,6 +20,9 @@ first live check of these shapes happens at work.
 | `ce-component-idle.json` | `api/ce/component` | nothing queued; the branch's last task succeeded |
 | `ce-component-running.json` | `api/ce/component` | a task for the branch in progress, and one for pull request 42 pending |
 | `ce-component-failed.json` | `api/ce/component` | the branch's last task failed |
+| `ce-component-main-queued.json` | `api/ce/component` | a main-branch task pending (no `branch` key: SonarQube gives the main branch's tasks none), and one for pull request 42 |
+| `ce-component-main-failed.json` | `api/ce/component` | the main branch's last task failed, again with no `branch` key |
+| `project-branches.json` | `api/project_branches/list` | the project's branches: `main` is the main one, `dev` is not |
 | `ce-task-success.json` | `api/ce/task` | pull request 42's task done, with its analysis id |
 | `ce-task-in-progress.json` | `api/ce/task` | the same task still running |
 | `ce-task-failed.json` | `api/ce/task` | the same task failed |
