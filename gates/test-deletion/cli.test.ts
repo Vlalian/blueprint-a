@@ -55,9 +55,22 @@ describe('test-deletion CLI', () => {
     expect(run(dir, '--allow', 'a.test.ts').status).toBe(0);
   });
 
+  it("passes a deletion the plan's Delete section lists with a replacing test on the branch, and fails it once that test is gone (ticket 70)", () => {
+    const dir = repo();
+    writeFileSync(join(dir, 'a.test.ts'), "it('one', () => {});\n");
+    writeFileSync(join(dir, 'plan.md'), 'Plan for: t.md\n\n## Delete\n- Test: a.test.ts::two -> b.test.ts::two\n');
+    writeFileSync(join(dir, 'b.test.ts'), "it('two', () => {});\n");
+    expect(run(dir, '--plan', 'plan.md').status).toBe(0);
+    rmSync(join(dir, 'b.test.ts'));
+    const r = run(dir, '--plan', 'plan.md');
+    expect(r.status).toBe(1);
+    expect(JSON.parse(r.stdout).unreplaced[0].reason).toBe('a.test.ts::two is listed under Delete, but its replacing test b.test.ts::two is not on the branch');
+  });
+
   it('exits 2 when it cannot run (no --base, or a ref that does not exist)', () => {
     const dir = repo();
     expect(spawnSync(process.execPath, [CLI, '--cwd', dir]).status).toBe(2);
     expect(spawnSync(process.execPath, [CLI, '--base', 'nope', '--cwd', dir]).status).toBe(2);
+    expect(run(dir, '--plan', 'no-such-plan.md').status).toBe(2);
   });
 });
