@@ -15,6 +15,8 @@ const RESET = 'reset --hard is not allowed; it destroys work';
 const BRANCH_D = 'force-deleting a branch is not allowed';
 const DISCARD = 'discarding all changes is not allowed';
 const ALL = 'pushing every branch is not allowed; it pushes main too';
+// A refusal of a push form the guard does not read in full; the exact words are tested once below.
+const FORM = expect.stringMatching(/^this git push is not a form the guard reads in full, so it is not allowed; the forms allowed: /);
 const toMain = (ref: string) => `push to ${ref} is not allowed; push the ticket branch and open a draft PR`;
 
 describe('blockedReason: what an agent may not do with git and gh', () => {
@@ -33,13 +35,7 @@ describe('blockedReason: what an agent may not do with git and gh', () => {
     'git push origin ticket/01:ticket/01',
     'git push origin refs/heads/ticket/01',
     'git push origin HEAD:heads/ticket/01',
-    'git push origin HEAD:refs/heads/mainline',
-    'git push origin HEAD:x/heads/main',
-    'git push origin HEAD:refs/main',
-    'git push origin feature/main-page',
     'git push -u origin HEAD',
-    'git push -o ci.skip origin ticket/01',
-    'git push --force-if-includes origin ticket/01',
     'git -c user.name=x commit -m y',
     'git -C ../other status',
     'git config user.name x',
@@ -79,14 +75,14 @@ describe('blockedReason: what an agent may not do with git and gh', () => {
     ['git push --mirror origin', FORCE],
     ['git push --mirr origin', FORCE],
     ['git push origin +ticket/01', FORCE],
-    ['git push origin main', toMain('main')],
-    ['git push origin master', toMain('master')],
-    ['git push origin HEAD:master', toMain('master')],
-    ['git push origin refs/heads/main', toMain('refs/heads/main')],
-    ['git push origin HEAD:refs/heads/master', toMain('refs/heads/master')],
-    ['git push origin HEAD:heads/main', toMain('heads/main')],
-    ['git push origin heads/master', toMain('heads/master')],
-    ["git push origin 'refs/heads/*:refs/heads/*'", toMain('refs/heads/*')],
+    ['git push origin main', FORM],
+    ['git push origin master', FORM],
+    ['git push origin HEAD:master', FORM],
+    ['git push origin refs/heads/main', FORM],
+    ['git push origin HEAD:refs/heads/master', FORM],
+    ['git push origin HEAD:heads/main', FORM],
+    ['git push origin heads/master', FORM],
+    ["git push origin 'refs/heads/*:refs/heads/*'", FORM],
     ['git push --all origin', ALL],
     ['git push --branches origin', ALL],
     ['git push --delete origin ticket/01', DELETE],
@@ -146,7 +142,7 @@ describe('blockedReason: what an agent may not do with git and gh', () => {
     ["gh api graphql -f 'query=mutation { enablePullRequestAutoMerge(input: {}) { clientMutationId } }'", "merging or readying a PR through the API is the owner's call (tier 4)"],
     ["gh alias set m 'pr merge'", 'defining a gh alias is not allowed; it can hide a blocked command'],
   ])('blocks %s', (line, why) => {
-    expect(check(line)).toBe(why);
+    expect(check(line)).toEqual(why);
   });
 
   it.each(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--config-env', '--super-prefix', '--attr-source'])(
@@ -159,14 +155,208 @@ describe('blockedReason: what an agent may not do with git and gh', () => {
   it('blocks a bare push while on main, options or not', () => {
     expect(check('git push', 'main')).toBe('push to main is not allowed; you are on main');
     expect(check('git push -u origin', 'main')).toBe('push to main is not allowed; you are on main');
-    expect(check('git push origin ticket/01', 'main')).toBeUndefined();
     expect(check('git push origin', 'master')).toBe('push to master is not allowed; you are on master');
     expect(check('git push', 'ticket/01')).toBeUndefined();
+  });
+
+  describe('allows only the push forms it reads in full (review round 4), and refuses every other', () => {
+    const withConfig = (line: string, values: Record<string, string[]>, branch = 'ticket/01') =>
+      commandsOf(line).map((words) => blockedReason(words, { currentBranch: branch, config: (key) => values[key] ?? [] })).find(Boolean);
+    const MIRROR_ORIGIN = { 'remote.origin.mirror': ['true'] };
+
+    it('blocks git push --repo=safe --no-repo from ticket/63 with remote.origin.mirror=true: git drops safe and mirror-pushes to origin', () => {
+      expect(withConfig('git push --repo=safe --no-repo', MIRROR_ORIGIN, 'ticket/63')).toEqual(FORM);
+      expect(withConfig('git push --no-repo', MIRROR_ORIGIN, 'ticket/63')).toEqual(FORM);
+      expect(check('git push --repo=safe --no-repo', 'ticket/63')).toEqual(FORM);
+    });
+
+    it.each([
+      // Review round 1: a -c override sets where the push goes.
+      'git -c remote.origin.push=ticket/63:refs/heads/main push origin',
+      // Review round 2: -c overrides that make it a mirror push, or a push of every matching branch.
+      'git -c remote.origin.mirror=true push origin',
+      'git -c remote.origin.push=: push origin',
+      // Review round 3: -o's value glued, and an option that takes the next word.
+      'git push -ohello origin main',
+      'git push --recurse-submodules no origin',
+      // The first finding: --repo with a refspec git reads as the repository.
+      'git push --repo=origin main',
+    ])('refuses %s from ticket/63, an earlier review finding', (line) => {
+      expect(withConfig(line, MIRROR_ORIGIN, 'ticket/63')).toEqual(FORM);
+      expect(check(line, 'ticket/63')).toEqual(FORM);
+    });
+
+    it.each([
+      '-C . push origin ticket/01',
+      '-c user.name=x push origin ticket/01',
+      '--config-env=user.name=N push origin',
+      '--git-dir=.git push',
+      '--no-pager push',
+    ])('refuses git %s: no git option before push', (words) => {
+      expect(check(`git ${words}`)).toEqual(FORM);
+    });
+
+    it.each([
+      '-q',
+      '--no-repo',
+      '-o x origin',
+      '--push-option=x origin',
+      '--repo origin',
+      '--rep=origin',
+      '-uq origin',
+      '--set-up origin',
+      '--receive-pack=x origin',
+      '--exec=x origin',
+      '--tags origin',
+      '--follow-tags origin',
+      '--atomic origin',
+      '--dry-run origin',
+      '--force-if-includes origin ticket/01',
+      '-- origin',
+      '- origin',
+      'origin -- ticket/01',
+      'origin ticket/01 ticket/01',
+      '. HEAD:ticket/01',
+      '../x',
+      'https://example.com/r.git',
+      'origin HEAD:HEAD',
+      'origin ticket/01:ticket/01:x',
+      'origin ticket/02',
+      'origin ticket/01:ticket/02',
+      'origin HEAD:refs/heads/mainline',
+      'origin heads/ticket/01',
+      'origin main',
+      'origin HEAD:main',
+      'origin refs/heads/ticket/01:refs/heads/main',
+    ])('refuses git push %s from ticket/01', (words) => {
+      expect(check(`git push ${words}`)).toEqual(FORM);
+    });
+
+    it.each([
+      '',
+      '-u',
+      'origin',
+      '-u origin ticket/01',
+      '--set-upstream origin HEAD',
+      'origin ticket/01 -u',
+      'origin @',
+      'origin HEAD:ticket/01',
+      'origin @:heads/ticket/01',
+      'origin refs/heads/ticket/01:refs/heads/ticket/01',
+      'origin_2 ticket/01',
+      'up.stream ticket/01',
+      'my-remote ticket/01',
+    ])('allows git push %s from ticket/01', (words) => {
+      expect(check(`git push ${words}`)).toBeUndefined();
+    });
+
+    it('names the allowed forms when it refuses one', () => {
+      expect(check('git push --no-repo')).toBe(
+        'this git push is not a form the guard reads in full, so it is not allowed; the forms allowed: git push [-u|--set-upstream] [<remote> [<branch>[:<branch>]]], where <branch> is the checked-out branch (HEAD, @ or refs/heads/<branch> too), with no git option before push and no other push option',
+      );
+    });
+  });
+
+  describe('an allowed push still goes where git config sends it', () => {
+    const withConfig = (line: string, values: Record<string, string[]>, branch = 'ticket/01') =>
+      commandsOf(line).map((words) => blockedReason(words, { currentBranch: branch, config: (key) => values[key] ?? [] })).find(Boolean);
+    const MAPPED = { 'remote.origin.push': ['ticket/01:refs/heads/main'] };
+
+    it('blocks a push that remote.<name>.push maps to main, from a ticket branch', () => {
+      expect(withConfig('git push origin', MAPPED)).toBe(toMain('refs/heads/main'));
+      expect(withConfig('git push', MAPPED)).toBe(toMain('refs/heads/main'));
+      expect(withConfig('git push -u origin', MAPPED)).toBe(toMain('refs/heads/main'));
+    });
+
+    it('blocks a refspec without :<dst> that remote.<name>.push maps to main', () => {
+      expect(withConfig('git push origin ticket/01', MAPPED)).toBe(toMain('refs/heads/main'));
+      expect(withConfig('git push origin HEAD', MAPPED)).toBe(toMain('refs/heads/main'));
+      expect(withConfig('git push origin ticket/02', { 'remote.origin.push': ['refs/heads/ticket/02:refs/heads/master'] }, 'ticket/02')).toBe(toMain('refs/heads/master'));
+      expect(withConfig('git push origin ticket/01', { 'remote.origin.push': ['ticket/02:refs/heads/main'] })).toBeUndefined();
+      expect(withConfig('git push origin ticket/01:ticket/01', MAPPED)).toBeUndefined();
+    });
+
+    it('maps a source given with refs/heads/ in remote.<name>.push, and only that name; one with + is a force push', () => {
+      expect(withConfig('git push origin ticket/02', { 'remote.origin.push': ['+ticket/02:refs/heads/main'] }, 'ticket/02')).toBe(FORCE);
+      expect(withConfig('git push origin xticket/02', { 'remote.origin.push': ['ticket/02:main'] }, 'xticket/02')).toBeUndefined();
+      expect(withConfig('git push origin refs/heads/ticket/02', { 'remote.origin.push': ['ticket/02:main'] }, 'ticket/02')).toBe(toMain('main'));
+      expect(withConfig('git push origin ab', { 'remote.origin.push': ['a+b:main'] }, 'ab')).toBeUndefined();
+      expect(withConfig('git push origin team/x', { 'remote.origin.push': ['team/refs/heads/x:main'] }, 'team/x')).toBeUndefined();
+      // A configured refspec without :<dst> pushes its source to the same name.
+      expect(withConfig('git push origin heads/main', { 'remote.origin.push': ['heads/main'] }, 'heads/main')).toBe(toMain('heads/main'));
+    });
+
+    describe('reads push config that git turns into --mirror, a forced update or a push of every branch', () => {
+      const MIRROR = 'a mirror push (remote.<name>.mirror) is not allowed; it force-pushes and deletes every branch, main too';
+
+      it('reads mirror from the config or bare, on the remote the push goes to', () => {
+        expect(withConfig('git push origin', { 'remote.origin.mirror': [''] }, 'ticket/63')).toBe(MIRROR);
+        expect(withConfig('git push', { 'remote.origin.mirror': ['yes'] })).toBe(MIRROR);
+        expect(withConfig('git push up ticket/01', { 'remote.up.mirror': ['1'] })).toBe(MIRROR);
+        expect(withConfig('git push', { 'remote.up.mirror': ['on'], 'remote.pushDefault': ['up'] })).toBe(MIRROR);
+      });
+
+      it('leaves mirror off when it is false, or set on another remote', () => {
+        expect(withConfig('git push origin', { 'remote.origin.mirror': ['true', 'false'] })).toBeUndefined();
+        expect(withConfig('git push origin', { 'remote.origin.mirror': ['No'] })).toBeUndefined();
+        expect(withConfig('git push origin', { 'remote.origin.mirror': ['OFF'] })).toBeUndefined();
+        expect(withConfig('git push origin', { 'remote.origin.mirror': ['00'] })).toBeUndefined();
+        expect(withConfig('git push origin', { 'remote.up.mirror': ['true'] })).toBeUndefined();
+        expect(withConfig('git push origin', { 'remote.origin.mirror': ['xfalse'] })).toBe(MIRROR);
+        expect(withConfig('git push origin', { 'remote.origin.mirror': ['falsey'] })).toBe(MIRROR);
+      });
+
+      it('blocks remote.origin.push=:, which pushes every matching branch, main too', () => {
+        expect(withConfig('git push', { 'remote.origin.push': [':'] })).toBe(toMain('*'));
+        expect(withConfig('git push origin', { 'remote.origin.push': ['HEAD:ticket/01', ':'] })).toBe(toMain('*'));
+      });
+
+      it('blocks a configured refspec with +, a forced update, +: included', () => {
+        expect(withConfig('git push origin', { 'remote.origin.push': ['+:'] })).toBe(FORCE);
+        expect(withConfig('git push', { 'remote.origin.push': ['+HEAD:ticket/01'] })).toBe(FORCE);
+        expect(withConfig('git push origin ticket/01:ticket/01', { 'remote.origin.push': ['+refs/heads/x:refs/heads/x'] })).toBe(FORCE);
+        expect(withConfig('git push origin', { 'remote.up.push': ['+HEAD:ticket/01'] })).toBeUndefined();
+      });
+
+      it('counts a configured wildcard refspec as reaching main, for a refspec without :<dst> too', () => {
+        // refs/heads/x*:refs/heads/ma* sends xin to main; the guard does not work the glob out.
+        expect(withConfig('git push origin xin', { 'remote.origin.push': ['refs/heads/x*:refs/heads/ma*'] }, 'xin')).toBe(toMain('refs/heads/ma*'));
+        expect(withConfig('git push origin', { 'remote.origin.push': ['refs/heads/*:refs/heads/*'] })).toBe(toMain('refs/heads/*'));
+      });
+    });
+
+    it('pushes a branch named like main (heads/main) to that name, with no config at all', () => {
+      expect(check('git push', 'heads/main')).toBe(toMain('heads/main'));
+      expect(check('git push origin', 'refs/heads/master')).toBe(toMain('refs/heads/master'));
+    });
+
+    it('takes the remote from pushRemote, then remote.pushDefault, then the branch remote, then origin', () => {
+      const up = { 'remote.up.push': ['HEAD:main'] };
+      expect(withConfig('git push', { ...up, 'branch.ticket/01.pushRemote': ['up'] })).toBe(toMain('main'));
+      expect(withConfig('git push', { ...up, 'remote.pushDefault': ['up'] })).toBe(toMain('main'));
+      expect(withConfig('git push', { ...up, 'branch.ticket/01.remote': ['up'] })).toBe(toMain('main'));
+      expect(withConfig('git push', { ...up, 'remote.pushDefault': ['x', 'up'] })).toBe(toMain('main'));
+      expect(withConfig('git push', up)).toBeUndefined();
+    });
+
+    it('follows push.default: upstream pushes to the branch it tracks, matching pushes main too', () => {
+      const tracks = { 'branch.ticket/01.merge': ['refs/heads/main'] };
+      expect(withConfig('git push', { ...tracks, 'push.default': ['upstream'] })).toBe(toMain('refs/heads/main'));
+      expect(withConfig('git push origin', { ...tracks, 'push.default': ['tracking'] })).toBe(toMain('refs/heads/main'));
+      expect(withConfig('git push', { ...tracks, 'push.default': ['upstream', 'simple'] })).toBeUndefined();
+      expect(withConfig('git push', { 'push.default': ['matching'] })).toBe(toMain('*'));
+      // simple (the default) refuses a branch whose upstream has another name; current pushes the branch itself.
+      expect(withConfig('git push', tracks)).toBeUndefined();
+      expect(withConfig('git push', { ...tracks, 'push.default': ['current'] })).toBeUndefined();
+      expect(withConfig('git push', { ...tracks, 'push.default': ['nothing'] })).toBeUndefined();
+    });
   });
 
   it('blocks pushing HEAD or @ while on main, since that is main then', () => {
     expect(check('git push origin HEAD', 'main')).toBe(toMain('main'));
     expect(check('git push origin @', 'main')).toBe(toMain('main'));
+    expect(check('git push origin main', 'main')).toBe(toMain('main'));
+    expect(check('git push origin refs/heads/master:heads/master', 'master')).toBe(toMain('heads/master'));
     expect(check('git push -u origin HEAD', 'ticket/01')).toBeUndefined();
     expect(check('git push origin @', 'ticket/01')).toBeUndefined();
   });

@@ -119,6 +119,24 @@ describe('scoreCrap', () => {
     expect(scored.find((f) => f.name === 'inner')!.coverage).toBe(0);
   });
 
+  it('credits a parent statement that starts on a callback\'s line, before the callback, to the parent', () => {
+    // `return xs.map((x) => {` on line 2: the return starts at column 2, the
+    // callback at column 16. Neither ran; by line alone the parent had no
+    // statement of its own left and scored as covered.
+    const outer = fn({ name: 'outer', startLine: 1, endLine: 5, startColumn: 0, complexity: 2 });
+    const inner = fn({ name: 'inner', startLine: 2, endLine: 4, startColumn: 16, complexity: 1 });
+    const cov: FileCoverage = {
+      statementMap: { '0': { start: { line: 2, column: 2 }, end: { line: 4 } }, '1': { start: { line: 3, column: 4 }, end: { line: 3 } }, '2': { start: { line: 2, column: 16 }, end: { line: 2 } } },
+      s: { '0': 0, '1': 1, '2': 1 },
+    };
+
+    const scored = scoreCrap([outer, inner], cov);
+
+    // Line 3's statement starts left of the callback's column but on a later line: the callback's.
+    expect(scored.find((f) => f.name === 'outer')!.coverage).toBe(0);
+    expect(scored.find((f) => f.name === 'inner')!.coverage).toBe(1);
+  });
+
   it('scores every function with no coverage data at all as uncovered', () => {
     // A file the test run never loaded reports nothing, which is not the same
     // as a file whose statements all ran. Treating a missing file as covered

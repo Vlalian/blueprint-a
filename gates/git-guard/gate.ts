@@ -12,7 +12,8 @@ import type { GateResult } from '../lib/contract.ts';
 const USAGE = 'usage: git-guard --branch <checked-out branch> [--dialect sh|powershell|cmd] <command line>';
 const DIALECTS: string[] = ['sh', 'powershell', 'cmd'];
 
-export function gitGuard(args: string[]): GateResult {
+/** The verdict on a command line; `config` is the repo's git config (none when not given), where a push without a refspec goes. */
+export function gitGuard(args: string[], config?: (key: string) => string[]): GateResult {
   const { values, positionals } = parseArgs({ args, allowPositionals: true, options: { branch: { type: 'string' }, dialect: { type: 'string', default: 'sh' } } });
   const [line] = positionals;
   if (values.branch === undefined || line === undefined || !DIALECTS.includes(values.dialect)) throw new Error(USAGE);
@@ -21,7 +22,7 @@ export function gitGuard(args: string[]): GateResult {
   const blocked = [
     ...(env === undefined ? [] : [{ command: line, reason: env }]),
     ...commands.flatMap((words) => {
-      const reason = blockedReason(words, { currentBranch: values.branch! });
+      const reason = blockedReason(words, { currentBranch: values.branch!, config });
       return reason === undefined ? [] : [{ command: words.join(' '), reason }];
     }),
   ];
