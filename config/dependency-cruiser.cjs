@@ -2,6 +2,12 @@
 // file). Generic on purpose: no cycles, and every import resolves. A project with layers of its
 // own adds rules in a config that extends this one and passes it with --config.
 
+const { existsSync } = require('node:fs');
+
+// The project's tsconfig.json, in the folder dependency-cruiser runs in, when it has one: its path
+// aliases (`@lib/x`) resolve through it, so not-to-unresolvable never flags a working alias.
+const tsConfig = existsSync('tsconfig.json') ? { tsConfig: { fileName: 'tsconfig.json' } } : {};
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -25,6 +31,7 @@ module.exports = {
     exclude: { path: '(^|/)(dist|coverage|\\.red-check)/' },
     // Type-only imports count: a cycle through types is still a cycle in the design.
     tsPreCompilationDeps: true,
+    ...tsConfig,
     enhancedResolveOptions: {
       extensions: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.json'],
       conditionNames: ['import', 'require', 'node', 'default', 'types'],

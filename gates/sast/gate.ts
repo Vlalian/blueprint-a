@@ -105,21 +105,28 @@ export function sastLines(r: SastResult): string[] {
 
 type Git = (args: string[]) => { status: number | null; stdout: string };
 
-const lines = (text: string) => text.split(/\r?\n/).filter(Boolean);
+const names = (text: string) => text.split('\0').filter(Boolean);
 
-/** The files a change since `base` leaves in the worktree, committed or not, and the untracked ones. */
+/**
+ * The files a change since `base` leaves in the worktree, committed or not, and the untracked ones.
+ * Every path is relative to the folder git runs in (--relative; ls-files already is), the same base
+ * readHead and readBase use, so a subfolder never scans nothing; -z keeps names git would quote.
+ */
 export function changedFiles(base: string, git: Git): string[] {
-  const diff = git(['diff', '--name-only', '--diff-filter=d', base, '--']);
+  const diff = git(['diff', '--name-only', '--relative', '-z', '--diff-filter=d', base, '--']);
   if (diff.status !== 0) throw new Error(`git cannot diff against ${base}`);
-  return [...new Set([...lines(diff.stdout), ...lines(git(['ls-files', '--others', '--exclude-standard']).stdout)])];
+  return [...new Set([...names(diff.stdout), ...names(git(['ls-files', '-z', '--others', '--exclude-standard']).stdout)])];
 }
 
 export type SastCliIo = Omit<SastIo, 'readBase'> & { git: Git };
 
-/** The gate on these files against a git ref (HEAD for the Stop gate), the base files read with git show. */
+/**
+ * The gate on these files against a git ref (HEAD for the Stop gate), the base files read with git
+ * show; `./` makes git read the path from the folder it runs in, as the files are, not the repo root.
+ */
 export function sastSince(base: string, opts: SastOptions, io: SastCliIo): SastResult {
   const readBase = (file: string) => {
-    const shown = io.git(['show', `${base}:${file}`]);
+    const shown = io.git(['show', `${base}:./${file}`]);
     return shown.status === 0 ? shown.stdout : undefined;
   };
   return sastGate(opts, { ...io, readBase });

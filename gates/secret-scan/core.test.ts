@@ -73,6 +73,15 @@ describe('scanSecrets', () => {
     expect(f!.excerpt).toMatch(/^ghp_c{2}…$/);
   });
 
+  it('shows at most a quarter of a short secret, and never more than six characters', () => {
+    const excerpt = (v: string) => scanSecrets([{ file: 'a', line: 1, text: `password = '${v}'` }])[0]!.excerpt;
+    expect(excerpt('Zq8r2LmP')).toBe('Zq…');
+    expect(excerpt('Zq8r2LmP0vX')).toBe('Zq…');
+    expect(excerpt('Zq8r2LmP0vXy')).toBe('Zq8…');
+    expect(excerpt('Zq8r2LmP0vXy7Tn4Wb3Kc9Hd')).toBe('Zq8r2L…');
+    expect(excerpt('Zq8r2LmP0vXy7Tn4Wb3Kc9Hd5Fg')).toBe('Zq8r2L…');
+  });
+
   it('reports one finding per line, in line order', () => {
     const lines = [
       { file: 'a', line: 1, text: `${fake.github} ${fake.aws}` },
@@ -81,7 +90,7 @@ describe('scanSecrets', () => {
     ];
     expect(scanSecrets(lines)).toEqual([
       { file: 'a', line: 1, kind: 'github-token', excerpt: 'ghp_cc…' },
-      { file: 'b', line: 3, kind: 'credential-assignment', excerpt: 'q8Zr2L…' },
+      { file: 'b', line: 3, kind: 'credential-assignment', excerpt: 'q8Zr…' },
     ]);
   });
 });
@@ -149,7 +158,7 @@ describe('scanSecrets: unquoted KEY=value lines in .env files', () => {
   });
 
   it('reports the value, shortened, never the whole of it', () => {
-    expect(scanSecrets([envLine(`API_KEY=${value}`)])).toEqual([{ file: '.env', line: 1, kind: 'env-assignment', excerpt: 'q8Zr2L…' }]);
+    expect(scanSecrets([envLine(`API_KEY=${value}`)])).toEqual([{ file: '.env', line: 1, kind: 'env-assignment', excerpt: 'q8Z…' }]);
   });
 
   it('skips values under 12 characters or without a digit', () => {

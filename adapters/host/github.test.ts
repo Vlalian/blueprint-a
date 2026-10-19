@@ -48,13 +48,34 @@ describe('queryCi', () => {
 
   it('asks gh for the check runs and the commit statuses of that exact SHA', () => {
     expect(ciQueries(SHA)).toEqual([
-      ['api', '-X', 'GET', `repos/{owner}/{repo}/commits/${SHA}/check-runs`, '-f', 'per_page=100'],
+      ['api', '-X', 'GET', `repos/{owner}/{repo}/commits/${SHA}/check-runs`, '-f', 'per_page=100', '-f', 'page=1'],
       ['api', '-X', 'GET', `repos/{owner}/{repo}/commits/${SHA}/status`, '-f', 'per_page=100'],
     ]);
+    expect(ciQueries(SHA, 3)[0].at(-1)).toBe('page=3');
     const asked: string[][] = [];
     const ci = queryCi(SHA, (args) => (asked.push(args), args[3]!.endsWith('check-runs') ? ok(runs(run('t', 'completed', 'success'))) : ok(statuses())));
     expect(asked).toEqual(ciQueries(SHA));
     expect(ci.state).toBe('green');
+  });
+
+  it('reads every page of check runs: a failing run on page 2 of more than 100 makes CI failing', () => {
+    const passing = Array.from({ length: 100 }, (_, i) => run(`t${i}`, 'completed', 'success'));
+    const pages = [{ total_count: 101, check_runs: passing }, { total_count: 101, check_runs: [run('late', 'completed', 'failure')] }];
+    const asked: string[][] = [];
+    const ci = queryCi(SHA, (args) => (asked.push(args), args[3]!.endsWith('check-runs') ? ok(pages[Number(args.at(-1)!.slice('page='.length)) - 1]) : ok(statuses())));
+    expect(ci).toMatchObject({ state: 'failing', failing: ['late'] });
+    expect(ci.passed).toHaveLength(100);
+    expect(asked).toEqual([ciQueries(SHA, 1)[0], ciQueries(SHA, 2)[0], ciQueries(SHA)[1]]);
+  });
+
+  it('stops at an empty page after a full one, and throws when GitHub counts more runs than its pages held', () => {
+    const passing = Array.from({ length: 100 }, (_, i) => run(`t${i}`, 'completed', 'success'));
+    const answer = (count: number) => (args: string[]) => {
+      if (!args[3]!.endsWith('check-runs')) return ok(statuses());
+      return ok({ total_count: count, check_runs: args.at(-1) === 'page=1' ? passing : [] });
+    };
+    expect(queryCi(SHA, answer(100)).state).toBe('green');
+    expect(() => queryCi(SHA, answer(150))).toThrow(`GitHub counts 150 check runs on ${SHA}; its pages held 100`);
   });
 
   it('throws with gh stderr when gh fails, so a failed query is never read as a state', () => {

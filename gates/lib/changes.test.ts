@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -94,6 +94,20 @@ describe('gitChangesIo and changedLines in a real repo', () => {
 
   it('lists untracked files that are not ignored', () => {
     expect(real.untracked()).toEqual(['u.txt']);
+  });
+
+  it('lists an untracked file whose name git would quote (a space, non-ASCII), by its real name', () => {
+    // Its own repo: on Windows a file just written can stay listed after rmSync while a scanner holds
+    // it open, so it must not share the repo the other tests read.
+    const own = repo();
+    const io = gitChangesIo(own);
+    writeFileSync(join(own, 'ny fil é.txt'), 'q\n');
+    try {
+      expect(io.untracked()).toEqual(['ny fil é.txt', 'u.txt']);
+      expect(io.read('ny fil é.txt')).toBe('q\n');
+    } finally {
+      rmSync(own, { recursive: true, force: true });
+    }
   });
 
   it('reads a file, or gives undefined when it is gone', () => {

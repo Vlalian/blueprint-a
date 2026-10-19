@@ -30,11 +30,12 @@ export interface Scan {
 /** A finding a reasoned suppression covers. */
 export type Suppressed = Finding & { reason: string };
 
-const LANGUAGE_DIR = /\.((?:javascript|typescript|csharp)\..*)/;
+// Greedy before the language folder: the last one wins, as the rules folder's own path may hold a language name.
+const LANGUAGE_DIR = /.*\.((?:javascript|typescript|csharp)\..*)/;
 
 /**
  * A local rule's check_id is the rules folder's path, dotted, then the rule's folders and id; the
- * rule is what follows the path, from its language folder on. Any other id is kept as it is.
+ * rule is what follows the path, from its (last) language folder on. Any other id is kept as it is.
  */
 export const ruleOf = (checkId: string) => LANGUAGE_DIR.exec(checkId)?.[1] ?? checkId;
 

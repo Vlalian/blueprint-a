@@ -50,6 +50,16 @@ describe('boundaries CLI', () => {
     expect(JSON.parse(r.stdout).violations).toEqual([{ rule: 'not-to-unresolvable', from: 'src/half.ts', to: './gone.ts' }]);
   });
 
+  it("resolves an import through the project's tsconfig path aliases before calling it unresolvable", () => {
+    const dir = fixtureCopy();
+    writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@lib/*': ['src/*'] } } }));
+    writeFileSync(join(dir, 'src/quarter.ts'), "import { half } from '@lib/half';\nexport const quarter = (n: number) => half(half(n));\n");
+    const r = run(dir, 'src');
+    expect(JSON.parse(r.stdout)).toMatchObject({ pass: true, violations: [] });
+    writeFileSync(join(dir, 'src/quarter.ts'), "import { half } from '@lib/gone';\nexport const quarter = half;\n");
+    expect(JSON.parse(run(dir, 'src').stdout).violations).toEqual([{ rule: 'not-to-unresolvable', from: 'src/quarter.ts', to: '@lib/gone' }]);
+  });
+
   it('passes the fixture project as the cleaner checks it (src and tests)', () => {
     expect(run(FIXTURE, 'src', 'tests').status).toBe(0);
   });

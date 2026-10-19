@@ -99,7 +99,9 @@ function query(m: Prometheus, promql: string, at: number, run: Runner): number {
   const args = ['get', '--raw', path];
   const reply = JSON.parse(output(run('kubectl', args), 'kubectl', args)) as Vector;
   if (reply.status !== 'success') throw new Error(`Prometheus refused the query: ${reply.error ?? reply.status}`);
-  const total = reply.data!.result.reduce((sum, s) => sum + Number(s.value[1]), 0);
+  const result = reply.data?.result;
+  if (!Array.isArray(result)) throw new Error(`Prometheus answered success with no result for ${promql}`);
+  const total = result.reduce((sum, s) => sum + Number(s.value[1]), 0);
   if (Number.isNaN(total)) throw new Error(`Prometheus returned a value that is not a number for ${promql}`);
   return total;
 }

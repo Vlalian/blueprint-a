@@ -32,7 +32,8 @@ const ENV_FILE = /(?:^|[\\/])\.env[^\\/]*$/;
 const ENV_ASSIGNMENT = /^\s*(?:export\s+)?[A-Za-z_]\w*\s*=\s*([^\s"'#]\S*)/;
 const looksSecret = (value: string) => /\d/.test(value) && value.length >= 12 && !PLACEHOLDER.test(value);
 
-const shorten = (s: string) => `${s.slice(0, 6)}…`;
+// At most a quarter of the value and never more than six characters: an 8-character password shows two.
+const shorten = (s: string) => `${s.slice(0, Math.min(6, Math.floor(s.length / 4)))}…`;
 
 const isPlaceholder = (kind: string, value: string) => kind === 'credential-assignment' && PLACEHOLDER.test(value);
 

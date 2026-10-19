@@ -58,10 +58,11 @@ describe('hardenerGate', () => {
     hardenerGate({ base: 'main' }, i);
     expect(logs).toEqual([
       [
-        'hardener: a mutant no test can kill (equivalent) is not yours to suppress. End with the exact edit that removes it,',
+        'hardener: a mutant no test can kill (equivalent) marks redundant code: simplify first. End with the exact edit that removes it,',
         '  SIMPLIFY <the mutant file>:<its line> / before: <the line as it is> / after: <the line simplified> / why: <why no caller can tell>,',
-        '  for the cleaner to apply; only when no simpler code exists, SUPPRESS <file>:<line> <Mutator> with the',
-        '  line-level comment and its reason. See skills/hardener/SKILL.md, rule 7.',
+        '  and the cleaner makes one simplification pass over its module. Only for a mutant that survives that pass and that',
+        '  no refactoring can remove: SUPPRESS <file>:<line> <Mutator> with the line-level comment, its reason, and why not simpler.',
+        '  See skills/hardener/SKILL.md, rule 7.',
       ].join('\n'),
     ]);
   });

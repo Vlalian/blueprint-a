@@ -37,6 +37,12 @@ export type FunctionRef = {
 
 export type FunctionComplexity = FunctionRef & {
   complexity: number;
+  /**
+   * The 0-based column the function starts at, when known: CRAP needs it to
+   * tell a parent statement that starts on a callback's first line, before
+   * the callback, from the callback's own.
+   */
+  startColumn?: number;
 };
 
 type FunctionNode =
@@ -185,7 +191,8 @@ export function measureComplexity(file: string, source: string): FunctionComplex
     }
     walk(fn);
 
-    found.push({ name: nameOf(fn, tree), file, ...rangeOf(fn, tree), complexity });
+    const startColumn = tree.getLineAndCharacterOfPosition(fn.getStart(tree)).character;
+    found.push({ name: nameOf(fn, tree), file, ...rangeOf(fn, tree), startColumn, complexity });
   });
 
   // Already in source order, so the sort this used to end with is gone. The

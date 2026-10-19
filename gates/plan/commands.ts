@@ -10,7 +10,9 @@ export const DEFAULT_ALLOW = ['npm test', 'npm run lint', 'npm run typecheck', '
 // Fence tags that hold commands; an untagged fence is read as commands too.
 const SHELL_TAGS = new Set(['', 'bash', 'sh', 'shell', 'zsh', 'powershell', 'ps1', 'pwsh', 'console', 'cmd', 'bat']);
 const FENCE = /^```\s*(\S*)/;
-const COMMAND_WORDS = /^(?:npm|npx|node|git|rm|curl|wget|pnpm|yarn|bun|bash|sh|powershell|pwsh|del|rmdir|chmod|sudo)\b/;
+// A command word, with or without a Windows extension, followed by a space or the end: `node:fs`
+// or `git-rules.ts` is a name, not a command; `git.exe push` is a command.
+const COMMAND_WORDS = /^(?:npm|npx|node|git|rm|curl|wget|pnpm|yarn|bun|bash|sh|powershell|pwsh|del|rmdir|chmod|sudo)(?:\.(?:exe|cmd|bat|ps1))?(?:\s|$)/i;
 // `&&` and `||` are caught by `&` and `|`; a redirection writes a file, so it is refused too.
 const CHAINING = /[;&|`<>]|\$\(/;
 
