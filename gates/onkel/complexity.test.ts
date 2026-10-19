@@ -150,6 +150,12 @@ describe('measureComplexity', () => {
     expect(scoreOne('function f(o: object) { for (const k in o) console.log(k); }')).toBe(2);
   });
 
+  it('gives the 0-based column a function starts at, so a statement before it on its first line is told apart', () => {
+    const [outer, inner] = measureComplexity('t.ts', 'function f(xs: number[]) {\n  return xs.map((x) => x + 1);\n}');
+    expect(outer).toMatchObject({ startLine: 1, startColumn: 0 });
+    expect(inner).toMatchObject({ startLine: 2, startColumn: 16 });
+  });
+
   it('reports nothing for a file with no functions', () => {
     expect(measureComplexity('t.ts', 'export const x = 1;')).toEqual([]);
   });

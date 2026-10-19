@@ -18,6 +18,21 @@ describe('gitGuard', () => {
     expect(gitGuard(['--branch', 'feature/x', 'git push origin HEAD'])).toMatchObject({ pass: true });
   });
 
+  it('judges a push with no refspec by the git config it is given', () => {
+    const config = (key: string) => (key === 'remote.origin.push' ? ['HEAD:refs/heads/master'] : []);
+    expect(gitGuard(['--branch', 'feature/x', 'git push origin'], config)).toMatchObject({ pass: false });
+    expect(gitGuard(['--branch', 'feature/x', 'git push origin'])).toMatchObject({ pass: true });
+  });
+
+  it('blocks a push that a git -c override sends to main, with no repository config', () => {
+    expect(gitGuard(['--branch', 'ticket/63', 'git -c remote.origin.push=ticket/63:refs/heads/main push origin'])).toMatchObject({ pass: false });
+  });
+
+  it('blocks a mirror or matching push that a git -c override sets up, with no repository config', () => {
+    expect(gitGuard(['--branch', 'ticket/63', 'git -c remote.origin.mirror=true push origin'])).toMatchObject({ pass: false });
+    expect(gitGuard(['--branch', 'ticket/63', 'git -c remote.origin.push=: push origin'])).toMatchObject({ pass: false });
+  });
+
   it('blocks a line that turns the hooks off through the environment', () => {
     expect(gitGuard(['--branch', 'feature/x', 'HUSKY=0 git commit -m x'])).toEqual({
       gate: 'git-guard',
