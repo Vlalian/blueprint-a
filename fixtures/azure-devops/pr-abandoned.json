@@ -1,0 +1,29 @@
+{
+  "repository": {
+    "id": "3411ebc1-d5aa-464f-9615-0b527bc66719",
+    "name": "fabrikam-web",
+    "url": "https://dev.azure.com/fabrikam/_apis/git/repositories/3411ebc1-d5aa-464f-9615-0b527bc66719",
+    "project": {
+      "id": "a7573007-bbb3-4341-b726-0c4148a07853",
+      "name": "Fabrikam-Fiber",
+      "state": "wellFormed"
+    }
+  },
+  "pullRequestId": 22,
+  "codeReviewId": 22,
+  "status": "abandoned",
+  "creationDate": "2026-10-06T08:35:12.1234567Z",
+  "title": "Ticket 07: export the report",
+  "description": "Built and reviewed.",
+  "sourceRefName": "refs/heads/ticket/07",
+  "targetRefName": "refs/heads/dev",
+  "mergeStatus": "queued",
+  "isDraft": true,
+  "lastMergeSourceCommit": {
+    "commitId": "4c1e2f0a9b8d7c6e5f4a3b2c1d0e9f8a7b6c5d4e",
+    "url": "https://dev.azure.com/fabrikam/_apis/git/repositories/3411ebc1-d5aa-464f-9615-0b527bc66719/commits/4c1e2f0a9b8d7c6e5f4a3b2c1d0e9f8a7b6c5d4e"
+  },
+  "reviewers": [],
+  "url": "https://dev.azure.com/fabrikam/_apis/git/repositories/3411ebc1-d5aa-464f-9615-0b527bc66719/pullRequests/22",
+  "supportsIterations": true
+}

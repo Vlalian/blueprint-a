@@ -1,0 +1,13 @@
+import { describe, expect, it } from 'vitest';
+
+describe('orders', () => {
+  it('totals an order', () => {
+    expect(1 + 2).toBe(3);
+  });
+
+  it.skipIf(!process.env.DATABASE_URL)('saves an order to the database', () => {
+    expect(process.env.DATABASE_URL).toBeTruthy();
+  });
+
+  it.todo('refunds an order');
+});

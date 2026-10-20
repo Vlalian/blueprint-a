@@ -1,0 +1,23 @@
+{
+  "queue": [],
+  "current": {
+    "id": "AZJ3kpZ1Lm2Nn3Oo4Pp5",
+    "type": "REPORT",
+    "componentId": "AZJ0p9o8i7u6y5t4r3e2",
+    "componentKey": "fabrikam-web",
+    "componentName": "Fabrikam Web",
+    "componentQualifier": "TRK",
+    "status": "SUCCESS",
+    "submittedAt": "2026-10-06T09:40:58+0000",
+    "submitterLogin": "azure-pipelines",
+    "branch": "dev",
+    "branchType": "BRANCH",
+    "analysisId": "AZJ3kq0x9Rr2vT1mLw5a",
+    "startedAt": "2026-10-06T09:41:01+0000",
+    "executedAt": "2026-10-06T09:41:12+0000",
+    "executionTimeMs": 10870,
+    "hasScannerContext": true,
+    "warningCount": 0,
+    "warnings": []
+  }
+}

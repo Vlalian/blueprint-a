@@ -1,0 +1,3 @@
+export function matcher(pattern: string) {
+  return new RegExp(pattern);
+}
