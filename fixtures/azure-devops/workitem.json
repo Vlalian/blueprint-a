@@ -1,0 +1,10 @@
+{
+  "id": 299,
+  "rev": 4,
+  "fields": {
+    "System.WorkItemType": "User Story",
+    "System.State": "Active",
+    "System.Title": "Export the weekly report"
+  },
+  "url": "https://dev.azure.com/fabrikam/_apis/wit/workItems/299"
+}

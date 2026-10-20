@@ -1,0 +1,8 @@
+import * as cp from 'child_process';
+
+/** Pings a host once. */
+export function ping(host: string) {
+  return cp.execSync('ping -c 1 ' + host);
+}
+
+export const pings = 1;

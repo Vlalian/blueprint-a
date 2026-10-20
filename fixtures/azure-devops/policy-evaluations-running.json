@@ -1,0 +1,59 @@
+{
+  "value": [
+    {
+      "evaluationId": "1c3f8d2e-7a1b-4c5d-9e0f-1a2b3c4d5e6f",
+      "artifactId": "vstfs:///CodeReview/CodeReviewId/a7573007-bbb3-4341-b726-0c4148a07853/22",
+      "status": "running",
+      "startedDate": "2026-10-06T08:35:13Z",
+      "configuration": {
+        "id": 11,
+        "revision": 1,
+        "isEnabled": true,
+        "isBlocking": true,
+        "isDeleted": false,
+        "type": {
+          "id": "00000000-0000-0000-0000-000000000011",
+          "displayName": "Build"
+        },
+        "settings": {}
+      }
+    },
+    {
+      "evaluationId": "2d4a9e3f-8b2c-4d6e-8f1a-2b3c4d5e6f70",
+      "artifactId": "vstfs:///CodeReview/CodeReviewId/a7573007-bbb3-4341-b726-0c4148a07853/22",
+      "status": "approved",
+      "startedDate": "2026-10-06T08:35:13Z",
+      "configuration": {
+        "id": 12,
+        "revision": 1,
+        "isEnabled": true,
+        "isBlocking": true,
+        "isDeleted": false,
+        "type": {
+          "id": "00000000-0000-0000-0000-000000000012",
+          "displayName": "Minimum number of reviewers"
+        },
+        "settings": {}
+      }
+    },
+    {
+      "evaluationId": "3e5b0f4a-9c3d-4e7f-9a2b-3c4d5e6f7081",
+      "artifactId": "vstfs:///CodeReview/CodeReviewId/a7573007-bbb3-4341-b726-0c4148a07853/22",
+      "status": "rejected",
+      "startedDate": "2026-10-06T08:35:13Z",
+      "configuration": {
+        "id": 13,
+        "revision": 1,
+        "isEnabled": true,
+        "isBlocking": false,
+        "isDeleted": false,
+        "type": {
+          "id": "00000000-0000-0000-0000-000000000013",
+          "displayName": "Comment requirements"
+        },
+        "settings": {}
+      }
+    }
+  ],
+  "count": 3
+}
