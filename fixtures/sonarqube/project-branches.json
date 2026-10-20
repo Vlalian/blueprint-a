@@ -1,0 +1,18 @@
+{
+  "branches": [
+    {
+      "name": "main",
+      "isMain": true,
+      "type": "BRANCH",
+      "status": { "qualityGateStatus": "OK" },
+      "analysisDate": "2026-10-06T08:02:47+0000"
+    },
+    {
+      "name": "dev",
+      "isMain": false,
+      "type": "BRANCH",
+      "status": { "qualityGateStatus": "ERROR" },
+      "analysisDate": "2026-10-06T09:41:12+0000"
+    }
+  ]
+}
