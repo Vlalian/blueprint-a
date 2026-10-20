@@ -1,0 +1,14 @@
+{
+  "id": 299,
+  "rev": 5,
+  "fields": {
+    "System.AreaPath": "Fabrikam-Fiber",
+    "System.TeamProject": "Fabrikam-Fiber",
+    "System.IterationPath": "Fabrikam-Fiber",
+    "System.WorkItemType": "User Story",
+    "System.State": "Resolved",
+    "System.Reason": "Code complete and unit tests pass",
+    "System.Title": "Export the weekly report"
+  },
+  "url": "https://dev.azure.com/fabrikam/_apis/wit/workItems/299"
+}

@@ -1,0 +1,29 @@
+{
+  "paging": {
+    "pageIndex": 1,
+    "pageSize": 20,
+    "total": 2
+  },
+  "analyses": [
+    {
+      "key": "AZJ3hT7c4Wq8nB2dKe1f",
+      "date": "2026-10-06T08:02:47+0000",
+      "projectVersion": "1.4.0",
+      "buildString": "",
+      "revision": "9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d",
+      "manualNewCodePeriodBaseline": false,
+      "detectedCI": "Azure DevOps",
+      "events": []
+    },
+    {
+      "key": "AZJ1aa2b3Cc4dD5eE6fF",
+      "date": "2026-10-05T16:20:03+0000",
+      "projectVersion": "1.4.0",
+      "buildString": "",
+      "revision": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "manualNewCodePeriodBaseline": false,
+      "detectedCI": "Azure DevOps",
+      "events": []
+    }
+  ]
+}

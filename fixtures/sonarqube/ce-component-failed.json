@@ -1,0 +1,22 @@
+{
+  "queue": [],
+  "current": {
+    "id": "AZJ3m0Qq1Rr2Ss3Tt4Uu",
+    "type": "REPORT",
+    "componentId": "AZJ0p9o8i7u6y5t4r3e2",
+    "componentKey": "fabrikam-web",
+    "componentName": "Fabrikam Web",
+    "componentQualifier": "TRK",
+    "status": "FAILED",
+    "submittedAt": "2026-10-06T09:40:58+0000",
+    "submitterLogin": "azure-pipelines",
+    "branch": "dev",
+    "branchType": "BRANCH",
+    "startedAt": "2026-10-06T09:59:40+0000",
+    "executedAt": "2026-10-06T09:59:44+0000",
+    "executionTimeMs": 4012,
+    "errorMessage": "Analysis report could not be processed",
+    "hasErrorStacktrace": true,
+    "hasScannerContext": true
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "queue": [
+    {
+      "id": "AZJ3n2Aa1Bb2Cc3Dd4Ee",
+      "type": "REPORT",
+      "componentId": "AZJ0p9o8i7u6y5t4r3e2",
+      "componentKey": "fabrikam-web",
+      "componentName": "Fabrikam Web",
+      "componentQualifier": "TRK",
+      "status": "PENDING",
+      "submittedAt": "2026-10-06T10:12:03+0000",
+      "submitterLogin": "azure-pipelines"
+    },
+    {
+      "id": "AZJ3m1Vv5Ww6Xx7Yy8Zz",
+      "type": "REPORT",
+      "componentId": "AZJ0p9o8i7u6y5t4r3e2",
+      "componentKey": "fabrikam-web",
+      "componentName": "Fabrikam Web",
+      "componentQualifier": "TRK",
+      "status": "PENDING",
+      "submittedAt": "2026-10-06T09:40:58+0000",
+      "submitterLogin": "azure-pipelines",
+      "pullRequest": "42",
+      "pullRequestTitle": "Ticket 07: export the report"
+    }
+  ]
+}
