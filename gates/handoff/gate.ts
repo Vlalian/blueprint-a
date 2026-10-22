@@ -4,6 +4,12 @@
 import type { GateResult } from '../lib/contract.ts';
 import { type HandoffIo, validateHandoff } from './validate.ts';
 
+/** Replace the sequence only after its complete value is written. Each writer owns its temp path. */
+export function recordSequence(file: string, temp: string, next: number, io: { write(path: string, text: string): void; rename(from: string, to: string): void }): void {
+  io.write(temp, String(next));
+  io.rename(temp, file);
+}
+
 export interface HandoffGateIo {
   readDraft(path: string): string;
   /** WORKFLOW_ROLE (the sender) and WORKFLOW_ROLES (comma list), set by the dispatcher. */
@@ -26,6 +32,16 @@ export function commitFromGit(r: { status: number | null; stdout: string | null;
   if (/ambiguous/i.test(stderr)) return 'ambiguous' as const;
   if (/Needed a single revision/.test(stderr)) return null;
   throw new Error(`git could not look up the commit: ${stderr.trim() || `exit ${r.status}`}`);
+}
+
+/** Object-prefix lookup ignores refs with hexadecimal names. */
+export function resolveObjectCommit(abbrev: string, git: (args: string[]) => { status: number | null; stdout: string | null; stderr: string | null }) {
+  const result = git(['rev-parse', `--disambiguate=${abbrev}`]);
+  if (result.status !== 0) return commitFromGit(result);
+  const objects = result.stdout?.match(/\S+/g) ?? [];
+  if (objects.length === 0) return null;
+  if (objects.length > 1) return 'ambiguous' as const;
+  return commitFromGit(git(['rev-parse', '--verify', `${objects[0]}^{commit}`]));
 }
 
 /** The number after the one an outbox's sequence file holds; 1 when there is no file yet. */

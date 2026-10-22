@@ -135,16 +135,24 @@ function broadDirectiveFailures(directives: { file: string; line: number; text: 
   }));
 }
 
+/** The ceiling `--crap-ceiling` names (ticket 83), or CRAP_CEILING without one; throws on a value that is not a positive number. */
+export function crapCeilingOf(value: string | undefined): number {
+  if (value === undefined) return CRAP_CEILING;
+  const ceiling = Number(value);
+  if (!(ceiling > 0)) throw new Error(`--crap-ceiling needs a positive number, not ${value}`);
+  return ceiling;
+}
+
 /** Functions whose CRAP is over the ceiling. */
-function crapFailures(scores: CrapScore[]): Failure[] {
+function crapFailures(scores: CrapScore[], ceiling: number): Failure[] {
   return scores
-    .filter((fn) => fn.crap > CRAP_CEILING)
+    .filter((fn) => fn.crap > ceiling)
     .map((fn) => ({
       kind: 'crap' as const,
       name: fn.name,
       file: fn.file,
       line: fn.startLine,
-      detail: `CRAP ${fn.crap.toFixed(1)} exceeds the ceiling of ${CRAP_CEILING}`,
+      detail: `CRAP ${fn.crap.toFixed(1)} exceeds the ceiling of ${ceiling}`,
     }));
 }
 
@@ -213,8 +221,8 @@ function missedFilesFailure(missedFiles: boolean | undefined): Failure[] {
 }
 
 /** Whether to skip the Stryker run (decision #40): a CRAP failure already escalates, and mutating costs minutes. */
-export function skipsMutation(crap: CrapScore[]): boolean {
-  return crapFailures(crap).length > 0;
+export function skipsMutation(crap: CrapScore[], ceiling = CRAP_CEILING): boolean {
+  return crapFailures(crap, ceiling).length > 0;
 }
 
 type JudgeInput = {
@@ -227,6 +235,8 @@ type JudgeInput = {
   untested?: string[];
   /** Stryker found fewer files than its `mutate` list named (scope.ts `strykerMissedFiles`). */
   missedFiles?: boolean;
+  /** The CRAP ceiling (ticket 83, `--crap-ceiling`); CRAP_CEILING when unset. */
+  ceiling?: number;
   /** Stryker was not run because CRAP failed first (`skipsMutation`); the run has nothing to say. */
   mutationSkipped?: boolean;
   /** Stryker directives broader than one line in the graded files (suppressions.ts `broadDirectives`). */
@@ -266,7 +276,7 @@ function mutationFailures(input: JudgeInput): Failure[] {
 export function judge(input: JudgeInput): Verdict {
   const mutationSkipped = input.mutationSkipped === true;
   const failures = [
-    ...crapFailures(input.crap),
+    ...crapFailures(input.crap, input.ceiling ?? CRAP_CEILING),
     ...broadDirectiveFailures(input.broadDirectives ?? []),
     ...(mutationSkipped ? [] : mutationFailures(input)),
   ];

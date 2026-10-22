@@ -28,8 +28,8 @@ export const claimsIn = (dir: string | undefined, read: (path: string) => string
 
 export function planGate(opts: { plan?: string; ticket?: string; allow?: string[] }, io: PlanIo): GateResult & { checks: Checks } {
   if (!opts.plan || !opts.ticket) throw new Error('usage: plan --plan <plan.md> --ticket <ticket.md> [--allow <command>]… [--repo <dir>]');
-  const plan = io.readPlan(opts.plan);
-  const ticket = io.readTicket(opts.ticket);
+  const plan = io.readPlan(opts.plan).replaceAll('\r\n', '\n');
+  const ticket = io.readTicket(opts.ticket).replaceAll('\r\n', '\n');
   const checks: Checks = {
     // Ticket 51: a bug ticket's plan has the bug sections too (bug.ts).
     lint: [...lintPlan(plan), ...bugPlanFindings(plan, ticket)],

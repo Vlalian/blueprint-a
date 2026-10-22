@@ -21,6 +21,9 @@ function config(exitCode: number) {
 }
 
 describe('four-checks CLI', () => {
+  it.each([['four-checks', 'cli.ts'], ['four-checks', 'skips-cli.ts'], ['secret-scan', 'cli.ts'], ['test-deletion', 'cli.ts']])('%s/%s exits 2 on an unknown flag', (gate, entry) => {
+    expect(spawnSync(process.execPath, [join(import.meta.dirname, '..', gate, entry), '--bogus'], { encoding: 'utf8' }).status).toBe(2);
+  });
   it('prints JSON and exits 0 when green', () => {
     const { dir, path } = config(0);
     const r = cli(['--config', path, '--cwd', dir]);

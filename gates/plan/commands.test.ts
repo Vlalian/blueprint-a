@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { commandFindings, commandsIn, DEFAULT_ALLOW } from './commands.ts';
 
 describe('commandsIn', () => {
+  it.each(['  ~~~bash', '   ````sh', '```bash title="commands"'])('checks Markdown shell fence %s', (open) => {
+    expect(commandFindings(commandsIn(`${open}\ngit push --force\n`), DEFAULT_ALLOW)).toEqual([{ message: 'command not on the allowlist: git push --force' }]);
+  });
   it('reads every line of shell-fenced blocks, and inline code that starts with a command word', () => {
     const plan = [
       'Run `npm test` then `npx tsc --noEmit`; the variable `count` is not a command.',
@@ -161,4 +164,10 @@ describe('commandFindings', () => {
   ])('refuses any other argument after an allowed command (#42): %s', (command) => {
     expect(commandFindings([command], DEFAULT_ALLOW).map((f) => f.message)).toEqual([`command not on the allowlist: ${command}`]);
   });
+});
+it('closes only matching bare fences of sufficient length and handles an unclosed fence', () => {
+  expect(commandsIn('````sh\nnpm test\n```\nnpx vitest run\n~~~~\nnpm run lint\n```` trailing\nnpm run typecheck\n  ````  \n`git status`')).toEqual([
+    'npm test', '```', 'npx vitest run', '~~~~', 'npm run lint', '```` trailing', 'npm run typecheck', 'git status',
+  ]);
+  expect(commandsIn('~~~sh\nnpm test')).toEqual(['npm test']);
 });

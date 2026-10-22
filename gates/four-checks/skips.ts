@@ -120,8 +120,10 @@ function skipFailure(now: string[] | undefined, at: SkipsAt, io: SkipsIo): strin
 export function guardedTest(at: SkipsAt, io: SkipsIo): { exitCode: number; output: string } {
   const tree = io.tree(at.cwd);
   const { run, skipped } = testRun(at.cwd, io);
-  if (tree !== undefined && skipped !== undefined) io.write(posix.join(at.cache, `${tree}.json`), JSON.stringify(skipped));
   const failure = skipFailure(skipped, at, io);
-  if (failure === undefined) return run;
+  if (failure === undefined) {
+    if (tree !== undefined) io.write(posix.join(at.cache, `${tree}.json`), JSON.stringify(skipped));
+    return run;
+  }
   return { exitCode: run.exitCode || 1, output: `${run.output}\n${failure}\n` };
 }

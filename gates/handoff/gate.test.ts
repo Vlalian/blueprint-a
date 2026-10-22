@@ -1,5 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { claimSequence, createdExclusively, nextSequenceAfter, commitFromGit, handoffGate, type HandoffGateIo } from './gate.ts';
+import { resolveObjectCommit, recordSequence, claimSequence, createdExclusively, nextSequenceAfter, commitFromGit, handoffGate, type HandoffGateIo } from './gate.ts';
+
+it('splits object lookup output on all whitespace and handles absent stdout', () => {
+  const calls: string[][] = [];
+  expect(resolveObjectCommit('abc', (args) => {
+    calls.push(args);
+    return { status: 0, stdout: calls.length === 1 ? ' \tabcdef\r\n ' : 'commit\n', stderr: '' };
+  })).toEqual({ sha: 'commit' });
+  expect(calls).toEqual([['rev-parse', '--disambiguate=abc'], ['rev-parse', '--verify', 'abcdef^{commit}']]);
+  expect(resolveObjectCommit('abc', () => ({ status: 0, stdout: null, stderr: null }))).toBeNull();
+  expect(resolveObjectCommit('abc', () => ({ status: 0, stdout: 'abc\tdef', stderr: '' }))).toBe('ambiguous');
+});
+
+it('resolves only a unique object prefix and peels it to a commit', () => {
+  const sha = 'a'.repeat(40);
+  const calls: string[][] = [];
+  expect(resolveObjectCommit('aaaaaaa', (args) => { calls.push(args); return { status: 0, stdout: `${sha}\n`, stderr: '' }; })).toEqual({ sha });
+  expect(calls).toEqual([['rev-parse', '--disambiguate=aaaaaaa'], ['rev-parse', '--verify', `${sha}^{commit}`]]);
+  expect(resolveObjectCommit('aaaaaaa', () => ({ status: 0, stdout: '', stderr: '' }))).toBeNull();
+  expect(resolveObjectCommit('aaaaaaa', () => ({ status: 0, stdout: `${sha}\n${'b'.repeat(40)}\n`, stderr: '' }))).toBe('ambiguous');
+  expect(() => resolveObjectCommit('aaaaaaa', () => ({ status: 128, stdout: '', stderr: 'not a repository' }))).toThrow('not a repository');
+});
+
+it('records a sequence by writing a private temp file before replacing the shared file', () => {
+  const files = new Map([['sequence', '1']]);
+  recordSequence('sequence', 'private-temp', 2, {
+    write: (path, text) => { expect(files.get('sequence')).toBe('1'); files.set(path, text); },
+    rename: (from, to) => { expect(files.get(from)).toBe('2'); files.set(to, files.get(from)!); files.delete(from); },
+  });
+  expect(Object.fromEntries(files)).toEqual({ sequence: '2' });
+});
 
 describe('commitFromGit', () => {
   it('reads git rev-parse: a SHA on success, ambiguous when git says so, else null', () => {

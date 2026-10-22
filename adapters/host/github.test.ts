@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ciQueries, githubHost, queryCi, readCi } from './github.ts';
+import { ciQuery, githubHost, queryCi, readCi } from './github.ts';
 import type { ProcessResult } from './process-result.ts';
 
 const SHA = 'c'.repeat(40);
 const run = (name: string, status: string, conclusion: string | null = null) => ({ name, status, conclusion });
 const runs = (...r: ReturnType<typeof run>[]) => ({ total_count: r.length, check_runs: r });
-const statuses = (...s: Array<{ context: string; state: string }>) => ({ state: 'pending', statuses: s });
+const statuses = (...s: Array<{ context: string; state: string }>) => ({ state: 'pending', total_count: s.length, statuses: s });
 
 describe('readCi', () => {
   it('is green when every check run and status on the SHA passed', () => {
@@ -45,37 +45,63 @@ describe('readCi', () => {
 
 describe('queryCi', () => {
   const ok = (body: unknown): ProcessResult => ({ status: 0, stdout: JSON.stringify(body), stderr: '' });
-
-  it('asks gh for the check runs and the commit statuses of that exact SHA', () => {
-    expect(ciQueries(SHA)).toEqual([
-      ['api', '-X', 'GET', `repos/{owner}/{repo}/commits/${SHA}/check-runs`, '-f', 'per_page=100', '-f', 'page=1'],
-      ['api', '-X', 'GET', `repos/{owner}/{repo}/commits/${SHA}/status`, '-f', 'per_page=100'],
-    ]);
-    expect(ciQueries(SHA, 3)[0].at(-1)).toBe('page=3');
+  const page = (path: string, n: number) => ['api', '-X', 'GET', `repos/{owner}/{repo}/commits/${SHA}/${path}`, '-f', 'per_page=100', '-f', `page=${n}`];
+  const passing = (n: number, from = 0) => Array.from({ length: n }, (_, i) => run(`c${from + i}`, 'completed', 'success'));
+  /** gh answering each endpoint's pages from these bodies, page 1 first; every call recorded. */
+  function paged(checkPages: unknown[], statusPages: unknown[] = [statuses()]) {
     const asked: string[][] = [];
-    const ci = queryCi(SHA, (args) => (asked.push(args), args[3]!.endsWith('check-runs') ? ok(runs(run('t', 'completed', 'success'))) : ok(statuses())));
-    expect(asked).toEqual(ciQueries(SHA));
-    expect(ci.state).toBe('green');
+    const gh = (args: string[]) => {
+      asked.push(args);
+      const n = Number(args.at(-1)!.slice('page='.length)) - 1;
+      return ok((args[3]!.endsWith('check-runs') ? checkPages : statusPages)[n] ?? {});
+    };
+    return { gh, asked };
+  }
+
+  it('asks gh for the check runs and the commit statuses of that exact SHA, a page of 100 at a time', () => {
+    expect(ciQuery(SHA, 'check-runs', 1)).toEqual(page('check-runs', 1));
+    const { gh, asked } = paged([runs(run('t', 'completed', 'success'))], [{ total_count: 0, statuses: [] }]);
+    expect(queryCi(SHA, gh).state).toBe('green');
+    expect(asked).toEqual([page('check-runs', 1), page('status', 1)]);
   });
 
-  it('reads every page of check runs: a failing run on page 2 of more than 100 makes CI failing', () => {
-    const passing = Array.from({ length: 100 }, (_, i) => run(`t${i}`, 'completed', 'success'));
-    const pages = [{ total_count: 101, check_runs: passing }, { total_count: 101, check_runs: [run('late', 'completed', 'failure')] }];
-    const asked: string[][] = [];
-    const ci = queryCi(SHA, (args) => (asked.push(args), args[3]!.endsWith('check-runs') ? ok(pages[Number(args.at(-1)!.slice('page='.length)) - 1]) : ok(statuses())));
+  it('reads every page before it judges: a failing check on page 2 is never read as green (ticket 77)', () => {
+    const { gh, asked } = paged([
+      { total_count: 101, check_runs: passing(100) },
+      { total_count: 101, check_runs: [run('late', 'completed', 'failure')] },
+    ]);
+    const ci = queryCi(SHA, gh);
     expect(ci).toMatchObject({ state: 'failing', failing: ['late'] });
     expect(ci.passed).toHaveLength(100);
-    expect(asked).toEqual([ciQueries(SHA, 1)[0], ciQueries(SHA, 2)[0], ciQueries(SHA)[1]]);
+    expect(asked).toEqual([page('check-runs', 1), page('check-runs', 2), page('status', 1)]);
+  });
+
+  it('reads every page of the commit statuses too', () => {
+    const { gh } = paged([runs()], [
+      { total_count: 2, statuses: [{ context: 'a', state: 'success' }] },
+      { total_count: 2, statuses: [{ context: 'b', state: 'pending' }] },
+    ]);
+    expect(queryCi(SHA, gh)).toMatchObject({ state: 'pending', passed: ['a'], pending: ['b'] });
+  });
+
+  it('fails closed when the pages end before the total, or a page has no total or list', () => {
+    expect(() => queryCi(SHA, paged([{ total_count: 101, check_runs: passing(100) }, { total_count: 101, check_runs: [] }]).gh)).toThrow(
+      'gh api check-runs: page 2 ended the list at 100 of 101, so CI on the commit cannot be read whole',
+    );
+    expect(() => queryCi(SHA, paged([{ check_runs: passing(1) }]).gh)).toThrow('gh api check-runs: page 1 has no total_count and check_runs list');
+    expect(() => queryCi(SHA, paged([{ total_count: 1 }]).gh)).toThrow('gh api check-runs: page 1 has no total_count and check_runs list');
+    expect(() => queryCi(SHA, paged([runs()], [{ statuses: [] }]).gh)).toThrow('gh api status: page 1 has no total_count and statuses list');
+    expect(() => queryCi(SHA, paged([runs()], [{ total_count: 0, statuses: {} }]).gh)).toThrow('gh api status: page 1 has no total_count and statuses list');
   });
 
   it('stops at an empty page after a full one, and throws when GitHub counts more runs than its pages held', () => {
-    const passing = Array.from({ length: 100 }, (_, i) => run(`t${i}`, 'completed', 'success'));
-    const answer = (count: number) => (args: string[]) => {
-      if (!args[3]!.endsWith('check-runs')) return ok(statuses());
-      return ok({ total_count: count, check_runs: args.at(-1) === 'page=1' ? passing : [] });
-    };
-    expect(queryCi(SHA, answer(100)).state).toBe('green');
-    expect(() => queryCi(SHA, answer(150))).toThrow(`GitHub counts 150 check runs on ${SHA}; its pages held 100`);
+    const answer = (count: number) => paged([{ total_count: count, check_runs: passing(100) }, { total_count: count, check_runs: [] }]);
+    const exact = answer(100);
+    expect(queryCi(SHA, exact.gh).state).toBe('green');
+    expect(exact.asked).toEqual([page('check-runs', 1), page('status', 1)]);
+    const short = answer(150);
+    expect(() => queryCi(SHA, short.gh)).toThrow('gh api check-runs: page 2 ended the list at 100 of 150, so CI on the commit cannot be read whole');
+    expect(short.asked).toEqual([page('check-runs', 1), page('check-runs', 2)]);
   });
 
   it('throws with gh stderr when gh fails, so a failed query is never read as a state', () => {
@@ -114,7 +140,7 @@ describe('githubHost', () => {
   it('reads checks for a commit from its check runs and commit statuses', () => {
     const { host, calls } = gh({ 'api check-runs': JSON.stringify(runs(run('t', 'completed', 'failure'))), 'api status': JSON.stringify(statuses()) });
     expect(host.checksForCommit(SHA)).toEqual({ sha: SHA, state: 'failing', passed: [], failing: ['t'], pending: [] });
-    expect(calls).toEqual(ciQueries(SHA));
+    expect(calls).toEqual([ciQuery(SHA, 'check-runs', 1), ciQuery(SHA, 'status', 1)]);
   });
 
   it('opens a draft PR when none is open for the branch, and reads its number from the URL', () => {

@@ -3,6 +3,8 @@
 // with code; all five source flows left it to the model. Granularity is the test file (v1). A
 // round that adds no test at all fails too (gate.ts, ticket 35).
 
+import { relative } from 'node:path';
+
 export interface RedFinding {
   file: string;
   detail: string;
@@ -13,6 +15,19 @@ export interface RedFinding {
 // external command"): the test command never ran, so the failure says nothing about the test.
 const NEVER_RAN = new Set([126, 127, 9009]);
 const couldNotRun = (exit: number) => exit < 0 || NEVER_RAN.has(exit);
+
+/** Vitest/Jest JSON evidence: a failed assertion, rather than a suite load or configuration error. */
+export function reportedFailure(stdout: string | null, file: string): boolean {
+  try {
+    const report = JSON.parse(String(stdout)) as { testResults: Array<{ name: string; assertionResults: Array<{ status: string }> }> };
+    return report.testResults.some((suite) => typeof suite.name === 'string' && relative(file, suite.name) === '' && suite.assertionResults.some((test) => test.status === 'failed'));
+  } catch {
+    return false;
+  }
+}
+
+/** The process status and its assertion evidence kept together for the gate. */
+export const redRunResult = (run: { status: number | null; stdout: string | null }, file: string) => ({ exitCode: run.status ?? -1, failedTest: reportedFailure(run.stdout, file) });
 
 /**
  * The test command with one file appended as a single literal argument for the shell
@@ -27,7 +42,7 @@ export function testCommandLine(command: string, file: string, platform: string)
   return `${command} ${quoted}`;
 }
 
-export function redCheck(changedTests: string[], exitAtBase: Record<string, number>, allowed: string[]): RedFinding[] {
+export function redCheck(changedTests: string[], exitAtBase: Record<string, number>, allowed: string[], failedAtBase: Record<string, boolean> = {}): RedFinding[] {
   return changedTests
     .filter((file) => !allowed.includes(file))
     .flatMap((file) => {
@@ -35,6 +50,7 @@ export function redCheck(changedTests: string[], exitAtBase: Record<string, numb
       if (exit === undefined) return [{ file, detail: 'was not run against the base code' }];
       if (couldNotRun(exit)) return [{ file, detail: `could not run against the base code (exit ${exit}); a test that never ran is not red` }];
       if (exit === 0) return [{ file, detail: 'passes on the base code, so it does not prove the change' }];
+      if (failedAtBase[file] !== true) return [{ file, detail: 'no failed test was reported against the base code' }];
       return [];
     });
 }

@@ -10,18 +10,17 @@ import { emit, failClosed } from '../lib/contract.ts';
 import { filesAt, showAt } from '../lib/git.ts';
 import { testDeletionGate } from './gate.ts';
 
-const { values } = parseArgs({
-  options: { base: { type: 'string' }, allow: { type: 'string', multiple: true, default: [] }, plan: { type: 'string', multiple: true, default: [] }, cwd: { type: 'string' } },
-});
-const cwd = values.cwd ?? process.cwd();
-
 emit(
-  failClosed('test-deletion', () =>
-    testDeletionGate(values, {
+  failClosed('test-deletion', () => {
+    const { values } = parseArgs({
+      options: { base: { type: 'string' }, allow: { type: 'string', multiple: true, default: [] }, plan: { type: 'string', multiple: true, default: [] }, cwd: { type: 'string' } },
+    });
+    const cwd = values.cwd ?? process.cwd();
+    return testDeletionGate(values, {
       filesAt: (ref) => filesAt(cwd, ref),
       showAt: (ref, path) => showAt(cwd, ref, path),
       readHead: (path) => (existsSync(join(cwd, path)) ? readFileSync(join(cwd, path), 'utf8') : undefined),
       readPlan: (path) => readFileSync(resolve(cwd, path), 'utf8'),
-    }),
-  ),
+    });
+  }),
 );

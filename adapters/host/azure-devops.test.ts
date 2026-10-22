@@ -116,7 +116,7 @@ describe('azureDevOpsHost: checks for a commit', () => {
 
 describe('VERIFIED / FAILED / NOT-VERIFIED, the same on both hosts', () => {
   const gh = (runs: Array<{ name: string; status: string; conclusion: string | null }>) =>
-    githubHost((args) => ({ status: 0, stdout: JSON.stringify(args[3]!.endsWith('check-runs') ? { check_runs: runs } : { statuses: [] }), stderr: '' }));
+    githubHost((args) => ({ status: 0, stdout: JSON.stringify(args[3]!.endsWith('check-runs') ? { total_count: runs.length, check_runs: runs } : { total_count: 0, statuses: [] }), stderr: '' }));
   const cases: Array<[string, string, Array<{ name: string; status: string; conclusion: string | null }>, string]> = [
     ['a pipeline run still going', 'builds-pending.json', [{ name: 'ci', status: 'in_progress', conclusion: null }], 'NOT-VERIFIED'],
     ['a failed run', 'builds-failed.json', [{ name: 'ci', status: 'completed', conclusion: 'failure' }], 'FAILED'],

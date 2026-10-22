@@ -5,8 +5,8 @@ function io(over: Partial<HardenerIo> = {}) {
   const calls: string[][] = [];
   const logs: string[] = [];
   const base: HardenerIo = {
-    diffNames: () => 'src/clamp.ts\ntests/protected/clamp.test.ts\n',
-    untracked: () => 'tests/hardener/clamp.test.ts\nsrc/new.ts\n',
+    diffNames: () => 'src/clamp.ts\0tests/protected/clamp.test.ts\0',
+    untracked: () => 'tests/hardener/clamp.test.ts\0src/new.ts\0',
     onkel: (args) => {
       calls.push(args);
       return 0;
@@ -38,6 +38,12 @@ describe('hardenerGate', () => {
     const { io: i, calls } = io();
     expect(hardenerGate({ base: 'main' }, i)).toBe(0);
     expect(calls).toEqual([['--base', 'main', 'src/clamp.ts', 'src/new.ts']]);
+  });
+
+  it('grades a file whose name git would quote, from the NUL-separated lists, unchanged (ticket 77)', () => {
+    const { io: i, calls } = io({ diffNames: () => 'src/æ.ts\0', untracked: () => 'src/a "b".ts\0src/new\nline.ts\0' });
+    expect(hardenerGate({ base: 'main' }, i)).toBe(0);
+    expect(calls).toEqual([['--base', 'main', 'src/æ.ts', 'src/a "b".ts', 'src/new\nline.ts']]);
   });
 
   it("asks onkel for its result as data where a cloud role's gate says (ticket 32, $WORKFLOW_GATE_JSON)", () => {
@@ -80,7 +86,7 @@ describe('hardenerGate', () => {
   });
 
   it('passes without running onkel when no source file changed', () => {
-    const { io: i, calls, logs } = io({ diffNames: () => 'tests/a.test.ts\n', untracked: () => '' });
+    const { io: i, calls, logs } = io({ diffNames: () => 'tests/a.test.ts\0', untracked: () => '' });
     expect(hardenerGate({ base: 'abc' }, i)).toBe(0);
     expect(calls).toEqual([]);
     expect(logs).toEqual(['hardener: no source file changed since abc; nothing for onkel to grade.']);

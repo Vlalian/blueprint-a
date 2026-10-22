@@ -5,11 +5,11 @@
 // Exit 0 written, 1 refused (repair messages on stdout), 2 could not run.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, linkSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { emit, failClosed } from '../lib/contract.ts';
-import { claimSequence, commitFromGit, createdExclusively, handoffGate, type HandoffGateIo } from './gate.ts';
+import { recordSequence, claimSequence, resolveObjectCommit, createdExclusively, handoffGate, type HandoffGateIo } from './gate.ts';
 
 type Options = { draft?: string; outbox?: string; cwd?: string };
 
@@ -32,7 +32,7 @@ function nextSequence(outbox: string): number {
   const file = join(outbox, '.sequence');
   const claim = (n: number) => createdExclusively(() => writeFileSync(join(outbox, '.claimed', String(n)), '', { flag: 'wx' }));
   const next = claimSequence(existsSync(file) ? readFileSync(file, 'utf8') : undefined, claim);
-  writeFileSync(file, String(next));
+  recordSequence(file, join(outbox, 'tmp', `sequence-${process.pid}-${next}`), next, { write: writeFileSync, rename: renameSync });
   return next;
 }
 
@@ -53,7 +53,7 @@ function io(cwd: string, outbox: string): HandoffGateIo {
     env: process.env,
     // LC_ALL=C: commitFromGit reads git's English messages, and Git for Windows may be localised.
     resolveCommit: (abbrev) =>
-      commitFromGit(spawnSync('git', ['rev-parse', '--verify', `${abbrev}^{commit}`], { cwd, encoding: 'utf8', env: { ...process.env, LC_ALL: 'C' } })),
+      resolveObjectCommit(abbrev, (args) => spawnSync('git', args, { cwd, encoding: 'utf8', env: { ...process.env, LC_ALL: 'C' } })),
     now: () => new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
     nextSequence: () => nextSequence(outbox),
     writeToOutbox: (name, text) => writeNew(outbox, name, text),

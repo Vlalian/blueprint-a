@@ -12,7 +12,7 @@ export interface RedCheckIo {
   checkoutBase(base: string): { dir: string; remove(): void };
   copyInto(dir: string, file: string): void;
   /** Runs one test file in dir and returns its exit code. */
-  runTest(dir: string, file: string): number;
+  runTest(dir: string, file: string): { exitCode: number; failedTest: boolean };
 }
 
 export function redCheckGate(
@@ -27,14 +27,17 @@ export function redCheckGate(
 
   const checkout = io.checkoutBase(base);
   const exitAtBase: Record<string, number> = {};
+  const failedAtBase: Record<string, boolean> = {};
   try {
     for (const file of tests) {
       io.copyInto(checkout.dir, file);
-      exitAtBase[file] = io.runTest(checkout.dir, file);
+      const run = io.runTest(checkout.dir, file);
+      exitAtBase[file] = run.exitCode;
+      failedAtBase[file] = run.failedTest;
     }
   } finally {
     checkout.remove();
   }
-  const findings = redCheck(tests, exitAtBase, allow);
+  const findings = redCheck(tests, exitAtBase, allow, failedAtBase);
   return { gate: 'red-check', pass: findings.length === 0, base, tests, exitAtBase, findings };
 }

@@ -1,0 +1,13 @@
+{
+  "$comment": "Function ledger thresholds (flow/evaluate-core.ts). Rule-based: each function's suggestion (keep, tune, merge, remove) comes from these numbers, never from a model. A suggestion other than keep becomes a lesson for the owner; nothing changes until it is accepted. Minutes and USD are over the evaluation's window.",
+  "zeroGuardRuns": 3,
+  "hookP95Ms": { "default": 1000, "stop-gate": 1800000 },
+  "gateRemoveAtMinutes": 60,
+  "gateRemoveAtUsd": 5,
+  "gateTuneAboveFalseAlarmRate": 0.3,
+  "gateTuneAboveCouldNotRunRate": 0.1,
+  "roleTuneBelowFirstTryRate": 0.5,
+  "reviewerTuneBelowConfirmedRate": 0.3,
+  "substreamRemoveAtItems": 50,
+  "skillTuneAboveFailedRate": 0.5
+}

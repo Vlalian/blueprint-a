@@ -1,0 +1,74 @@
+# Flow-control numbers (read by flow/workflow-config.ts; the gate thresholds by flow/gate-lessons-core.ts).
+# The reference build's numbers (docs/04-flow-control.md); tune them
+# for your projects. Flat `key: value` lines only. A missing, unknown or malformed key stops the
+# run before it starts anything.
+
+# Controllers running at once, across projects. Raise once the cost log shows headroom.
+controllers_at_once: 2
+# Tickets one controller builds per run.
+tickets_per_controller_run: 2
+# Stop-gate blocks on one role before the next red stop escalates.
+stop_gate_blocks: 2
+# Identical tool calls in a row before the loop monitor escalates the ticket.
+identical_calls_before_escalating: 5
+# Wall clock per ticket; when it runs out the ticket goes back to the queue with a report.
+wall_clock_minutes_per_ticket: 90
+# Retries per ticket over all failure classes; then the ticket is abandoned with a report.
+retries_per_ticket: 2
+# Share of a role agent's context at which it hands off to a fresh one. Parsed and checked, but
+# nothing acts on it yet: the hand-off needs a context reading from the session, not built.
+context_handoff_ratio: 0.7
+# Fix rounds after the batch review.
+review_fix_rounds: 2
+# Spend per run in USD (the cost log's total); when it is reached no new ticket starts.
+# No spec default: ECC's highest warning threshold.
+budget_usd_per_run: 50
+# How often an incident watcher looks at the hosting and the database during a run.
+incident_poll_minutes: 5
+
+# Retry table: retries per failure class, each also capped by retries_per_ticket.
+# A usage limit is never retried: the run stops clean and the ticket goes back to ready.
+# Context overflow: retry with a smaller scope.
+retry_context_overflow: 1
+# Network error: retry as-is.
+retry_network: 2
+# Tool error: retry once.
+retry_tool_error: 1
+# Unknown: retry once.
+retry_unknown: 1
+# CI flake: one fresh run, then treat it as real.
+retry_ci_flake: 1
+
+# Planning: repair rounds after a drafted plan fails the plan gates, each one a new
+# model call with the gate findings; then the ticket is escalated with the findings.
+plan_repair_rounds: 2
+
+# Gate metrics (runner/gate-metrics-core.ts). A gate that crosses one of these becomes
+# one lesson on the briefing with a suggested change; nothing changes until you accept it.
+# False alarms (your override or a new suppression) per failure above which the gate is too loud.
+gate_false_alarm_rate: 0.3
+# Could-not-run (exit 2) per run above which the gate needs fixing.
+gate_could_not_run_rate: 0.1
+# A gate with no fail in its last this many runs is dead (shown with the date of its last catch).
+gate_dead_window_runs: 30
+# Runs a gate needs before its rates are judged, so one bad run is not a trend.
+gate_min_runs: 10
+# Escapes per gate (or with no gate that fits) before a lesson to tighten it (or add a gate).
+gate_escapes_before_lesson: 1
+# The canary (gates/canary) reruns every gate's prove-it-bites test this often.
+canary_every_days: 7
+
+# Cloud build roles: a project may send the build
+# roles to cloud sessions; everything that judges runs on the local machine.
+# Cloud sessions at once, across every controller of the run.
+cloud_sessions_at_once: 3
+# Wall clock per cloud role session: one that has not pushed its done tag and gone idle by then
+# escalates.
+cloud_role_minutes: 60
+
+# Back to the cleaner: when onkel fails the hardener on a function whose complexity
+# alone is over the CRAP ceiling, which no test can fix, or only on equivalent mutants the hardener
+# wrote SIMPLIFY edits for, the cleaner gets this many extra rounds per ticket, for both causes
+# together, before the hardener runs again; after that the ticket escalates. The old name
+# complexity_rounds is still read. 2: a resumed build can need one round for complexity and one for equivalent mutants.
+cleaner_rounds: 2

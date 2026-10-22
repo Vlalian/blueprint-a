@@ -746,9 +746,9 @@ describe('main — the fast merge gate (ticket 31)', () => {
   it('hands Stryker the configured timeouts and prints what its timeouts cost', () => {
     givenRun({ mutants: ['Timeout'] });
 
-    main(['--timeout-ms', '9000', '--timeout-factor', '2', 'src/a.ts']);
+    main(['--timeout-ms', '9000', '--timeout-factor', '2', '--dry-run-timeout-minutes', '20', 'src/a.ts']);
 
-    expect(JSON.parse(String(writeFileSync.mock.calls[0][1]))).toMatchObject({ timeoutMS: 9000, timeoutFactor: 2 });
+    expect(JSON.parse(String(writeFileSync.mock.calls[0][1]))).toMatchObject({ timeoutMS: 9000, timeoutFactor: 2, dryRunTimeoutMinutes: 20 });
     expect(logged()).toContain('Stryker timeouts: 1 mutant(s) timed out, waiting at most 9.0 s in all');
   });
 

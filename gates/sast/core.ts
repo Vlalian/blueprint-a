@@ -7,6 +7,7 @@
 // Pure.
 
 import { isTestFile } from '../lib/test-files.ts';
+import ts from 'typescript';
 
 /** The Semgrep version the rules in rules/ were recorded with (rules/SNAPSHOT.json). */
 export const PINNED_SEMGREP = '1.179.0';
@@ -83,7 +84,8 @@ export const unpinned = (version: string) =>
 const SOURCE = /\.(?:[cm]?[jt]sx?|cs)$/;
 
 /** The changed files the rules are for: TypeScript, JavaScript and C#, not tests and not fixtures. */
-export const sastSources = (files: string[]) => files.filter((f) => SOURCE.test(f) && !isTestFile(f) && !f.split('/').includes('fixtures'));
+/** The changed source files to scan: no tests, no fixtures, and no top-level dist/ (generated copies of sources it scans already; the owner, 2026-10-21). */
+export const sastSources = (files: string[]) => files.filter((f) => SOURCE.test(f) && !isTestFile(f) && !f.split('/').includes('fixtures') && !f.startsWith('dist/'));
 
 export interface Suppression {
   line: number;
@@ -95,15 +97,39 @@ export interface Suppression {
 
 const COMMENT = /(?:\/\/|\/\*|#)\s*nosemgrep\b(?::(.*?))?(?:\s--\s*(.*?))?\s*(?:\*\/)?\s*$/;
 
-function suppressionAt(text: string, i: number): Suppression[] {
+function commentStarts(text: string): Set<number> {
+  const tree = ts.createSourceFile(import.meta.filename, text, ts.ScriptTarget.Latest);
+  const comments = new Set<number>();
+  const record = (pos: number): void => { comments.add(pos); };
+  const visit = (node: ts.Node): void => {
+    ts.forEachLeadingCommentRange(text, node.pos, record);
+    ts.forEachTrailingCommentRange(text, node.end, record);
+    for (const child of node.getChildren(tree)) visit(child);
+  };
+  visit(tree);
+  return comments;
+}
+
+function suppressionAt(text: string, i: number, starts: Set<number>, offset: number): Suppression[] {
   const m = COMMENT.exec(text);
   if (m === null) return [];
+  if (!starts.has(offset + m.index)) return [];
   const rules = (m[1] ?? '').split(',').map((r) => r.trim()).filter(Boolean);
   return [{ line: i + 1, rules, reason: m[2] ?? '', alone: text.slice(0, m.index).trim() === '' }];
 }
 
 /** Every nosemgrep comment in a file's text, by line. */
-export const suppressionsIn = (text: string): Suppression[] => text.split(/\r?\n/).flatMap(suppressionAt);
+export function suppressionsIn(text: string): Suppression[] {
+  // Keep the historical standalone # comment syntax while lexing source as one whole file.
+  const source = text.replace(/^(\s*)#(?=\s*nosemgrep\b)/gm, '$1//');
+  const starts = commentStarts(source);
+  let offset = 0;
+  return source.split('\n').flatMap((line, i) => {
+    const found = suppressionAt(line, i, starts, offset);
+    offset += line.length + 1;
+    return found;
+  });
+}
 
 const NO_REASON = 'a nosemgrep comment needs the rule id and a reason: nosemgrep: <rule> -- <reason>';
 

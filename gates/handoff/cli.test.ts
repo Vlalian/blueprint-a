@@ -24,6 +24,15 @@ function repo() {
 const env = { ...process.env, WORKFLOW_ROLE: 'coder', WORKFLOW_ROLES: 'coder,cleaner' };
 
 describe('handoff CLI', () => {
+  it('does not resolve a hexadecimal branch name as an object prefix', () => {
+    const { dir } = repo();
+    execFileSync('git', ['branch', '0123456789'], { cwd: dir });
+    const draft = join(dir, 'draft.txt');
+    writeFileSync(draft, 'type: git_handoff\nto: cleaner\npriority: 50\ntask: x\ncommit: 0123456789\n');
+    const r = spawnSync(process.execPath, [CLI, '--draft', draft, '--outbox', join(dir, 'outbox'), '--cwd', dir], { env, encoding: 'utf8' });
+    expect(r.status).toBe(1);
+    expect(JSON.parse(r.stdout).errors).toEqual(['commit "0123456789" does not resolve to a commit']);
+  });
   it('writes the canonical handoff into the outbox for a valid draft, with the full SHA', () => {
     const { dir, sha } = repo();
     const draft = join(dir, 'draft.txt');

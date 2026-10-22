@@ -5,6 +5,8 @@
 // Exit 0 pass, 1 fail, 2 could not run. The logic is in gate.ts and the adapters; this shell only
 // wires them together.
 
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { dotnetAdapter } from '../../adapters/dotnet/adapter.ts';
 import { dotnetIo } from '../../adapters/dotnet/io.ts';
 import { jsTsAdapter } from '../../adapters/js-ts/adapter.ts';
@@ -14,6 +16,11 @@ import { testStrengthGate } from './gate.ts';
 
 emit(
   failClosed('test-strength', () =>
-    testStrengthGate(process.argv.slice(2), (options) => (options.runner === 'dotnet' ? dotnetAdapter(options, dotnetIo(options.cwd)) : jsTsAdapter(options, jsTsIo(options.cwd)))),
+    testStrengthGate(
+      process.argv.slice(2),
+      (options) => (options.runner === 'dotnet' ? dotnetAdapter(options, dotnetIo(options.cwd)) : jsTsAdapter(options, jsTsIo(options.cwd))),
+      // A file that is not there reads as unread, which leaves its ignored mutants unverified.
+      (cwd, file) => (existsSync(join(cwd, file)) ? readFileSync(join(cwd, file), 'utf8') : undefined),
+    ),
   ),
 );

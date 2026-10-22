@@ -80,10 +80,21 @@ function fakeIo(o: { now?: string; base?: string; exitCode?: number; tree?: stri
 }
 
 const AT = { cwd: '/w', base: 'abc123', cache: '/git/workflow-skips' };
+
+it('does not write a head cache when the tree identity is unavailable', () => {
+  const f = fakeIo({ now: report('/w/a.test.ts', ['a', 'passed']), base: report('/w/.red-check/skips-base/a.test.ts', ['a', 'passed']) });
+  expect(guardedTest(AT, f.io)).toEqual({ exitCode: 0, output: 'ran in /w\n' });
+  expect([...f.files.keys()]).toEqual(['/git/workflow-skips/tree-of-abc123.json']);
+});
 const now = (...tests: Array<[string, string]>) => report('/w/src/db.test.ts', ...tests);
 const base = (...tests: Array<[string, string]>) => report('/w/.red-check/skips-base/src/db.test.ts', ...tests);
 
 describe('guardedTest', () => {
+  it('does not cache a tree whose skip guard rejects the run', () => {
+    const f = fakeIo({ now: now(['new', 'skipped']), base: base(['new', 'passed']), tree: 'REJECTED' });
+    expect(guardedTest(AT, f.io).exitCode).toBe(1);
+    expect(f.files.has('/git/workflow-skips/REJECTED.json')).toBe(false);
+  });
   it('passes the test run through when no more tests are skipped than at the base, running the base in a checkout it removes', () => {
     const f = fakeIo({ now: now(['a', 'passed'], ['b', 'todo']), base: base(['a', 'passed'], ['b', 'todo']), tree: 'T1' });
     expect(guardedTest(AT, f.io)).toEqual({ exitCode: 0, output: 'ran in /w\n' });

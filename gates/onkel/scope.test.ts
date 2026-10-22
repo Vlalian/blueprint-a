@@ -764,8 +764,13 @@ describe('widenToFunctions — Stryker is handed whole functions, not bare lines
 });
 
 describe('parseArgs — the fast merge gate (ticket 31)', () => {
+  it('refuses a value flag given without its value, naming it (review of 85)', () => {
+    expect(() => parseArgs(['src/a.ts', '--dry-run-timeout-minutes'])).toThrow('--dry-run-timeout-minutes needs a value');
+    expect(() => parseArgs(['src/a.ts', '--timeout-ms'])).toThrow('--timeout-ms needs a value');
+  });
+
   it('reads --trust, --coverage, --json, --timeout-ms and --timeout-factor as values, never as paths', () => {
-    const args = parseArgs(['--trust', 'abc', '--coverage=cov.json', '--json', 'out.json', '--timeout-ms', '9000', '--timeout-factor', '2', 'src/a.ts']);
+    const args = parseArgs(['--trust', 'abc', '--coverage=cov.json', '--json', 'out.json', '--timeout-ms', '9000', '--timeout-factor', '2', '--dry-run-timeout-minutes', '20', 'src/a.ts']);
     expect(args).toEqual({
       paths: ['src/a.ts'],
       wholeFile: false,
@@ -776,7 +781,13 @@ describe('parseArgs — the fast merge gate (ticket 31)', () => {
       json: 'out.json',
       timeoutMs: '9000',
       timeoutFactor: '2',
+      dryRunTimeoutMinutes: '20',
     });
+  });
+
+  it('reads --crap-ceiling as a value (ticket 83)', () => {
+    expect(parseArgs(['--crap-ceiling', '4', 'src/a.ts'])).toMatchObject({ paths: ['src/a.ts'], crapCeiling: '4' });
+    expect(() => parseArgs(['src/a.ts', '--crap-ceiling'])).toThrow('--crap-ceiling needs a value');
   });
 });
 

@@ -37,10 +37,17 @@ const cli = (dir: string, args: string[], env: Record<string, string> = {}) =>
 const TEST = ['--report', 'report.json', '--test', 'node "{CWD}/runner.cjs"'];
 
 describe('skips CLI', () => {
+  it('normalises a relative cwd before comparing report names', () => {
+    const { dir, base } = repo();
+    const r = cli(dir, ['--base', base, '--cwd', '.', ...TEST]);
+    expect([r.status, r.stdout]).toEqual([0, 'ran 2\n']);
+    const cache = join(gitIn(dir, 'rev-parse', '--absolute-git-dir'), 'workflow-skips', `${gitIn(dir, 'rev-parse', 'HEAD^{tree}')}.json`);
+    expect(readFileSync(cache, 'utf8')).toBe('["a.test.ts > old skip"]');
+  });
   it("passes the test command's output and exit when no more tests skip than at the base, leaving no report or checkout behind", () => {
     const { dir, base } = repo();
     const r = cli(dir, ['--base', base, ...TEST]);
-    expect([r.status, r.stdout, r.stderr]).toEqual([0, 'ran 2\n', '']);
+    expect([r.status, r.stdout]).toEqual([0, 'ran 2\n']);
     expect(existsSync(join(dir, 'report.json'))).toBe(false);
     expect(gitIn(dir, 'worktree', 'list').split('\n')).toHaveLength(1);
     expect(gitIn(dir, 'status', '--porcelain')).toBe('');

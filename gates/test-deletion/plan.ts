@@ -35,7 +35,7 @@ export interface Unreplaced extends DeletedTest {
 function onBranch(ref: string, readHead: (path: string) => string | undefined): boolean {
   const [file, title] = ref.split('::');
   const text = readHead(file!);
-  return text !== undefined && testCases(text).some((c) => c.active && (title === undefined || c.title === title));
+  return text !== undefined && testCases(text, file!).some((c) => c.active && (title === undefined || c.title === title));
 }
 
 function unreplaced(d: DeletedTest, p: PlannedDeletion, readHead: (path: string) => string | undefined): Unreplaced[] {

@@ -63,6 +63,7 @@ const fail = (problem: string): never => {
 };
 
 const DNS_LABEL = /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/;
+const DNS_SUBDOMAIN = /^(?=.{1,253}$)[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$/;
 const PREFIX = /^[a-z][-a-z0-9]{0,19}$/;
 const LABEL_KEY = /^([a-z0-9.-]+\/)?[A-Za-z0-9][-A-Za-z0-9_.]*$/;
 
@@ -111,7 +112,9 @@ function rule(value: unknown): RollbackRule {
   const o = known(object(value ?? {}, '"rollback"'), Object.keys(DEFAULT_RULE), '"rollback"');
   if (o.enabled !== undefined && typeof o.enabled !== 'boolean') fail('"enabled" must be true or false');
   const numbers = Object.entries(RULE_CHECKS).map(([k, ok]) => [k, number(o, k, DEFAULT_RULE[k as keyof typeof RULE_CHECKS], ok)]);
-  return { enabled: o.enabled === true, ...Object.fromEntries(numbers) } as RollbackRule;
+  const parsed = { enabled: o.enabled === true, ...Object.fromEntries(numbers) } as RollbackRule;
+  if (parsed.minMinutesOfTraffic > parsed.maxMinutesSinceLive) fail('"minMinutesOfTraffic" must not exceed "maxMinutesSinceLive"');
+  return parsed;
 }
 
 const ANY = /\S/;
@@ -149,7 +152,7 @@ export function kubernetesConfigOf(preview: unknown): KubernetesConfig {
     prefix: text(o, 'prefix', PREFIX, 'preview-'),
     namespace: m === 'helm' ? text(o, 'namespace', DNS_LABEL) : '',
     instanceLabel: text(o, 'instanceLabel', LABEL_KEY, 'app.kubernetes.io/instance'),
-    ingress: optional(o, 'ingress', DNS_LABEL),
+    ingress: optional(o, 'ingress', DNS_SUBDOMAIN),
     readyTimeoutSeconds: number(o, 'readyTimeoutSeconds', 300, positive),
     productionNamespace: text(o, 'productionNamespace', DNS_LABEL),
     protectedBranches: branches(o.protectedBranches),

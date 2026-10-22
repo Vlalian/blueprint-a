@@ -8,6 +8,24 @@ const NESTED = ['export function outer(xs: number[]) {', '  const a = 1;', '  re
 
 const stmt = (line: number) => ({ start: { line }, end: { line } });
 
+it('escapes every glob metacharacter with a literal backslash', () => {
+  expect(coverageArgs('jest', 'out', ['src\\a.ts'])).toEqual(['--ci', '--coverage', '--coverageReporters=json', '--coverageDirectory=out', '--collectCoverageFrom=src/a.ts']);
+  expect(coverageArgs('jest', 'out', ['a!{b}[c](d)*?.ts'])).toEqual(['--ci', '--coverage', '--coverageReporters=json', '--coverageDirectory=out', '--collectCoverageFrom=a\\!\\{b\\}\\[c\\]\\(d\\)\\*\\?.ts']);
+});
+
+it('includes boundary columns and ignores boundary columns on interior lines', () => {
+  const fn = { file: 'f.ts', name: 'f', startLine: 2, endLine: 4, startColumn: 10, endColumn: 20, complexity: 1 };
+  const statements = [
+    { start: { line: 2, column: 9 } }, { start: { line: 2, column: 10 } },
+    { start: { line: 3, column: 0 } }, { start: { line: 3, column: 99 } },
+    { start: { line: 4, column: 20 } }, { start: { line: 4, column: 21 } },
+  ];
+  expect(statements.map((statement) => functionLines([fn], { statementMap: { 0: statement }, s: { 0: 1 } })[0].lines)).toEqual([0, 1, 1, 1, 1, 0]);
+  expect(functionLines([fn], { statementMap: Object.fromEntries(statements.map((s, i) => [i, s])), s: { 0: 1, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1 } })).toEqual([
+    { file: 'f.ts', name: 'f', startLine: 2, endLine: 4, startColumn: 10, endColumn: 20, lines: 3, covered: 0 },
+  ]);
+});
+
 interface Fake extends JsTsIo {
   runs: Array<[Tool, string[]]>;
   written: Record<string, string>;
@@ -42,6 +60,13 @@ const COVERAGE = JSON.stringify({
 });
 
 describe('functionLines', () => {
+  it('distinguishes sibling functions on one line by columns', () => {
+    const fns = [
+      { file: 'f.ts', name: 'a', startLine: 1, endLine: 1, startColumn: 0, endColumn: 20, complexity: 3 },
+      { file: 'f.ts', name: 'b', startLine: 1, endLine: 1, startColumn: 21, endColumn: 45, complexity: 3 },
+    ];
+    expect(functionLines(fns, { statementMap: { 0: { start: { line: 1, column: 10 } }, 1: { start: { line: 1, column: 35 } } }, s: { 0: 1, 1: 0 } }).map(({ lines, covered }) => [lines, covered])).toEqual([[1, 1], [1, 0]]);
+  });
   it("counts a function's own lines and the lines the tests ran", () => {
     const fns = [{ file: 'src/sign.ts', name: 'sign', startLine: 1, endLine: 4, complexity: 3 }];
     expect(functionLines(fns, { statementMap: { 0: stmt(2), 1: stmt(2), 2: stmt(3), 3: stmt(9) }, s: { 0: 0, 1: 4, 2: 0, 3: 1 } })).toEqual([
@@ -109,6 +134,13 @@ describe('BINS', () => {
 });
 
 describe('coverageArgs', () => {
+  it('escapes literal file paths for coverage and mutation glob consumers', () => {
+    const file = 'src/[id]/a(1)*?.ts';
+    const escaped = 'src/\\[id\\]/a\\(1\\)\\*\\?.ts';
+    expect(coverageArgs('vitest', 'd', [file])).toContain(`--coverage.include=${escaped}`);
+    expect(coverageArgs('jest', 'd', [file])).toContain(`--collectCoverageFrom=${escaped}`);
+    expect(strykerConfig('vitest', [file], 'd').mutate).toEqual([escaped]);
+  });
   it('runs vitest once with v8 coverage as istanbul json, limited to the named files', () => {
     expect(coverageArgs('vitest', 'd', ['src/a.ts', 'src/b.ts'])).toEqual([
       'run',
@@ -173,7 +205,7 @@ describe('jsTsAdapter.coverage', () => {
       return { status: 0, output: '' };
     });
     const lines = jsTsAdapter({ runner: 'jest', cwd: ROOT, coverageFile: undefined }, io).coverage(['src/sign.ts']);
-    expect(lines).toEqual([{ file: 'src/sign.ts', name: 'sign', startLine: 1, endLine: 4, lines: 2, covered: 1 }]);
+    expect(lines).toEqual([{ file: 'src/sign.ts', name: 'sign', startLine: 1, endLine: 4, startColumn: 0, endColumn: 1, lines: 2, covered: 1 }]);
     expect(io.runs).toEqual([['jest', coverageArgs('jest', tmp, ['src/sign.ts'])]]);
     expect(io.removed).toEqual([tmp]);
   });

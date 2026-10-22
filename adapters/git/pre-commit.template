@@ -1,0 +1,14 @@
+#!/bin/sh
+# Workflow pre-commit backstop (installed by scripts/install-pre-commit). Works in any harness,
+# including opencode on the work laptop: git runs it, not the agent.
+# Blocks a commit whose staged lines add a secret or hidden Unicode, that changes a tier-4 file or
+# follows a change to the other git hooks (tamper, decision 34; it reads no skip variable), or when
+# the project's own checks fail. Do not bypass with --no-verify; the agent hooks block that too.
+set -e
+NODE="__NODE__"
+GATES="__WORKFLOW_HOME__/gates"
+"$NODE" "$GATES/secret-scan/cli.ts" --staged >/dev/null || { echo "pre-commit: secret-scan failed. Run: node $GATES/secret-scan/cli.ts --staged" >&2; exit 1; }
+"$NODE" "$GATES/hidden-unicode/cli.ts" --staged >/dev/null || { echo "pre-commit: hidden-unicode failed. Run: node $GATES/hidden-unicode/cli.ts --staged" >&2; exit 1; }
+"$NODE" "$GATES/tamper/cli.ts" --staged --hooks __HOOKS__ --state "__STATE__" >/dev/null || { echo "pre-commit: tamper failed (a tier-4 file or the git hooks changed). Run: node $GATES/tamper/cli.ts --staged --hooks __HOOKS__ --state __STATE__" >&2; exit 1; }
+"$NODE" "$GATES/locks/cli.ts" --staged || { echo "pre-commit: locked files changed without an agreed ticket" >&2; exit 1; }
+__PROJECT_CHECKS__

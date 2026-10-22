@@ -1,0 +1,22 @@
+{"at":"2026-09-22T10:00:00.000Z","run":"r09-22","project":"sample","ticket":"sample-01-coder","role":"coder","kind":"gate","gate":"test","sha":"s10:00","verdict":"fail","reasons":["why test"],"ms":4000}
+{"at":"2026-09-22T10:05:00.000Z","run":"r09-22","project":"sample","ticket":"sample-01-coder","role":"coder","kind":"gate","gate":"test","sha":"s10:05","verdict":"pass","reasons":[],"ms":3000}
+{"at":"2026-09-22T10:05:00.000Z","run":"r09-22","project":"sample","ticket":"sample-01-coder","role":"coder","kind":"gate","gate":"lint","sha":"s10:05","verdict":"pass","reasons":[],"ms":900}
+{"at":"2026-09-22T10:05:00.000Z","run":"r09-22","project":"sample","ticket":"sample-01-coder","role":"coder","kind":"gate","gate":"secret-scan","sha":"s10:05","verdict":"fail","reasons":["why secret-scan"],"ms":200}
+{"at":"2026-09-22T10:06:00.000Z","run":"r09-22","project":"sample","ticket":"sample-01-coder","role":"coder","kind":"suppression","gate":"secret-scan","file":"test/fixtures/token.json","reason":"a test fixture, not a secret"}
+{"at":"2026-09-22T10:07:00.000Z","run":"r09-22","project":"sample","ticket":"sample-01-coder","role":"coder","kind":"gate","gate":"secret-scan","sha":"s10:07","verdict":"pass","reasons":[],"ms":200}
+{"at":"2026-09-22T10:07:00.000Z","run":"r09-22","project":"sample","ticket":"sample-01-coder","role":"coder","kind":"gate","gate":"skeptic","sha":"s10:07","verdict":"pass","reasons":[],"ms":20000,"tokens":1500}
+{"at":"2026-09-22T10:08:00.000Z","run":"r09-22","project":"sample","ticket":"sample-01-coder","role":"coder","kind":"tool","tool":"Edit","target":"src/a.ts","result":"ok"}
+{"at":"2026-09-29T10:00:00.000Z","run":"r09-29","project":"sample","ticket":"sample-02-coder","role":"coder","kind":"gate","gate":"test","sha":"s10:00","verdict":"fail","reasons":["why test"],"ms":5000}
+{"at":"2026-09-29T10:00:00.000Z","run":"r09-29","project":"sample","ticket":"sample-02-coder","role":"coder","kind":"gate","gate":"lint","sha":"s10:00","verdict":"pass","reasons":[],"ms":1100}
+{"at":"2026-09-29T11:00:00.000Z","run":"r09-29","project":"sample","ticket":"","role":"owner","kind":"choice","item":"plan/sample/02-x.md","itemKind":"plan","choice":"override","note":"the test is wrong, not the code","gate":"test"}
+{"at":"2026-09-29T11:05:00.000Z","run":"r09-29","project":"sample","ticket":"sample-02-coder","role":"coder","kind":"gate","gate":"test","sha":"s11:05","verdict":"pass","reasons":[],"ms":4500}
+{"at":"2026-09-29T11:05:00.000Z","run":"r09-29","project":"sample","ticket":"sample-02-coder","role":"coder","kind":"gate","gate":"skeptic","sha":"s11:05","verdict":"pass","reasons":[],"ms":30000,"tokens":2500}
+{"at":"2026-10-01T09:00:00.000Z","run":"r10-01","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"gate","gate":"test","sha":"s09:00","verdict":"could-not-run","reasons":["why test"],"ms":0}
+{"at":"2026-10-01T09:10:00.000Z","run":"r10-01","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"gate","gate":"test","sha":"s09:10","verdict":"pass","reasons":[],"ms":3500}
+{"at":"2026-10-01T09:10:00.000Z","run":"r10-01","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"gate","gate":"lint","sha":"s09:10","verdict":"pass","reasons":[],"ms":1000}
+{"at":"2026-10-02T09:00:00.000Z","run":"r10-02","project":"other","ticket":"other-01-coder","role":"coder","kind":"gate","gate":"test","sha":"s09:00","verdict":"fail","reasons":["why test"],"ms":6000}
+{"at":"2026-10-02T09:10:00.000Z","run":"r10-02","project":"other","ticket":"other-01-coder","role":"coder","kind":"gate","gate":"test","sha":"s09:10","verdict":"pass","reasons":[],"ms":5500}
+{"at":"2026-10-03T20:00:00.000Z","run":"r10-03","project":"sample","ticket":"02","role":"review","kind":"finding","source":"spec","id":"f1","severity":"HIGH","axis":"correctness","file":"src/trim.ts","summary":"tabs are not trimmed","fate":"fix","reason":"","gate":"test","sha":"b2"}
+{"at":"2026-10-03T20:00:00.000Z","run":"r10-03","project":"sample","ticket":"03","role":"review","kind":"finding","source":"standards","id":"f2","severity":"MEDIUM","axis":"security","file":"src/env.ts","summary":"an API key is logged","fate":"escalate","reason":"needs the owner","sha":"c3"}
+{"at":"2026-10-03T20:00:00.000Z","run":"r10-03","project":"sample","ticket":"03","role":"review","kind":"finding","source":"codex","id":"f3","severity":"LOW","axis":"style","file":"src/env.ts","summary":"long line","fate":"decline","reason":"style only","gate":"lint"}
+{"at":"2026-10-04T0

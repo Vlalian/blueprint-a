@@ -1,0 +1,14 @@
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"tool","tool":"Read","target":"src/count.ts","result":"ok"}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"tool","tool":"Edit","target":"src/count.ts","result":"ok"}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"tool","tool":"Bash","target":"npm test","result":"error"}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"gate","gate":"lint","sha":"a1","verdict":"pass","reasons":[],"ms":900}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"gate","gate":"test","sha":"a1","verdict":"fail","reasons":["FAIL src/count.test.ts > counts tabs"],"ms":4100}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"tool","tool":"Edit","target":"src/count.ts","result":"ok"}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-03-coder","role":"coder","kind":"gate","gate":"test","sha":"a2","verdict":"pass","reasons":[],"ms":4000}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-04-coder","role":"coder","kind":"tool","tool":"Edit","target":"src/split.ts","result":"ok"}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-04-coder","role":"coder","kind":"gate","gate":"test","sha":"b1","verdict":"fail","reasons":["FAIL src/split.test.ts > splits on tabs"],"ms":3900}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-04-coder","role":"coder","kind":"gate","gate":"test","sha":"b2","verdict":"pass","reasons":[],"ms":3800}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"sample-05-coder","role":"coder","kind":"gate","gate":"test","sha":"c1","verdict":"fail","reasons":["FAIL src/trim.test.ts > trims tabs"],"ms":3700}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"05","role":"","kind":"escalation","source":"controller","reason":"test still red: tabs"}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"06","role":"review","kind":"finding","source":"spec","id":"f1","severity":"HIGH","axis":"correctness","file":"src/words.ts","summary":"tabs are not treated as whitespace","fate":"fix","reason":""}
+{"at":"2026-10-04T20:00:00.000Z","run":"r1","project":"sample","ticket":"","role":"owner","kind":"choice","item":"plan/sample/06-x.md","itemKind":"plan","choice":"reject","note":"say what happens with tabs"}

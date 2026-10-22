@@ -1,8 +1,12 @@
 // Test-deletion guard: a test that existed at the base and is gone now fails the gate unless
 // the plan lists it. Enforces onkel's rule "a test deleted during a refactor may not move the
-// numbers", which no flow enforced before. Titles are found by pattern, not by parsing, so a
+// numbers", which no flow enforced before. Titles are found by their text, not by what the test does, so a
 // renamed test counts as deleted; the plan lists it to allow it. A test switched off (`.skip`,
 // `.todo`, `xit`, or inside `xdescribe` / `describe.skip`) counts as deleted too (decision 36).
+// A pattern match counts only where TypeScript's parser finds a call there, so a test commented
+// out or quoted in a string is no test (ticket 74).
+
+import ts from 'typescript';
 
 export interface DeletedTest {
   file: string;
@@ -17,7 +21,7 @@ export interface TestCase {
 
 const TITLE = /\b(x?)(?:it|test)((?:\.(?:only|skip|todo|concurrent))*)(?:\.each\([\s\S]*?\))?\(\s*(['"`])((?:\\.|(?!\3)[\s\S])*?)\3/g;
 // A group call that switches off every test in it; the match ends where its brackets open.
-const OFF_GROUP = /\b(?:xdescribe|describe(?:\.\w+)*?\.(?:skip|todo))(?:\.each)?(?=\()/g;
+const OFF_GROUP = /\b(?:xdescribe|describe(?:\.\w+)*?\.(?:skip|todo))(?:\.each)?\s*(?=\()/g;
 // A string literal (skipped whole, so a bracket in it does not count) or a bracket.
 const TOKEN = /(['"`])(?:\\.|(?!\1)[\s\S])*?\1|[()]/g;
 const DEPTH: Record<string, number> = { '(': 1, ')': -1 };
@@ -33,27 +37,47 @@ function callEnd(source: string, open: number): number {
 }
 
 /** The stretch of each switched-off group: its name up to the close of its last chained call. */
-function offGroups(source: string): Array<[number, number]> {
-  return [...source.matchAll(OFF_GROUP)].map((m) => {
+function offGroups(source: string, starts: Set<number>): Array<[number, number]> {
+  return calls(OFF_GROUP, source, starts).map((m) => {
     let end = callEnd(source, m.index + m[0].length);
-    while (source[end] === '(') end = callEnd(source, end);
+    let next = end + source.slice(end).match(/\s*/)![0].length;
+    while (source[next] === '(') {
+      end = callEnd(source, next);
+      next = end + source.slice(end).match(/\s*/)![0].length;
+    }
     return [m.index, end];
   });
 }
 
-export function testCases(source: string): TestCase[] {
+/** Where each call in the code starts: the first character of what is called (`it`, `describe.skip`, `it.each(…)`). */
+function callStarts(source: string, file: string): Set<number> {
+  const starts = new Set<number>();
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) starts.add(node.expression.getStart());
+    ts.forEachChild(node, visit);
+  };
+  visit(ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true));
+  return starts;
+}
+
+/** The matches of a pattern that start a call the parser found: none in a comment or a string. */
+const calls = (pattern: RegExp, text: string, starts: Set<number>) => [...text.matchAll(pattern)].filter((m) => starts.has(m.index));
+
+/** The tests a file holds; its name tells the parser how to read it (`.tsx`, `.js`). */
+export function testCases(source: string, file: string): TestCase[] {
+  const starts = callStarts(source, file);
   // The text with every switched-off group blanked out; a test call still found there is on.
-  const shown = offGroups(source).reduce((text, [from, to]) => text.slice(0, from) + ' '.repeat(to - from) + text.slice(to), source);
+  const shown = offGroups(source, starts).reduce((text, [from, to]) => text.slice(0, from) + ' '.repeat(to - from) + text.slice(to), source);
   const on = new Set([...shown.matchAll(TITLE)].map((m) => m.index));
   // Group 4 is not optional, so every match carries the title.
-  return [...source.matchAll(TITLE)].map((m) => ({
+  return calls(TITLE, source, starts).map((m) => ({
     title: m[4],
     active: m[1] === '' && !/\.(?:skip|todo)/.test(m[2]) && on.has(m.index),
   }));
 }
 
-export function testTitles(source: string): string[] {
-  return testCases(source).map((c) => c.title);
+export function testTitles(source: string, file: string): string[] {
+  return testCases(source, file).map((c) => c.title);
 }
 
 /**
@@ -72,8 +96,8 @@ function takeKept(kept: TestCase[], test: TestCase): boolean {
 // two tests, and deleting one of them is a deletion.
 function deletedFromFile(file: string, source: string, now: string | undefined, allowed: string[]): DeletedTest[] {
   // Stryker disable next-line StringLiteral: equivalent; any text without a test call yields no tests, as '' does
-  const kept = testCases(now ?? '');
-  const base = testCases(source);
+  const kept = testCases(now ?? '', file);
+  const base = testCases(source, file);
   // Active tests take their copies first, so a test that was already off cannot use one up.
   const gone = new Set([...base.filter((t) => t.active), ...base.filter((t) => !t.active)].filter((t) => !takeKept(kept, t)));
   return base.filter((t) => gone.has(t) && !allowed.includes(`${file}::${t.title}`)).map((t) => ({ file, title: t.title }));

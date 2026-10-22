@@ -2,9 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_RULE, kubernetesConfigOf } from './config.ts';
 
 const base = { platform: 'kubernetes', productionNamespace: 'shop' };
+
+it('accepts a 253-character DNS subdomain and a single-digit label', () => {
+  expect(kubernetesConfigOf({ ...base, ingress: 'a'.repeat(253) }).ingress).toBe('a'.repeat(253));
+  expect(kubernetesConfigOf({ ...base, ingress: '1' }).ingress).toBe('1');
+  expect(kubernetesConfigOf({ ...base, ingress: 'a.b' }).ingress).toBe('a.b');
+  expect(() => kubernetesConfigOf({ ...base, ingress: '' })).toThrow('ingress');
+});
 const prometheus = { source: 'prometheus', namespace: 'monitoring', service: 'prometheus-operated', errors: 'sum(e)', requests: 'sum(r)' };
 
 describe('kubernetesConfigOf', () => {
+  it('accepts an ingress DNS subdomain and rejects malformed or oversized names', () => {
+    expect(kubernetesConfigOf({ ...base, ingress: 'web.preview.example' }).ingress).toBe('web.preview.example');
+    for (const ingress of ['a..b', '-a.b', 'a.b-', 'A.b', 'a'.repeat(254)]) expect(() => kubernetesConfigOf({ ...base, ingress })).toThrow('ingress');
+  });
+  it('rejects rollback timing that leaves no judgeable release age', () => {
+    expect(() => kubernetesConfigOf({ ...base, rollback: { minMinutesOfTraffic: 31, maxMinutesSinceLive: 30 } })).toThrow('minMinutesOfTraffic');
+    expect(kubernetesConfigOf({ ...base, rollback: { minMinutesOfTraffic: 30, maxMinutesSinceLive: 30 } }).rollback.minMinutesOfTraffic).toBe(30);
+  });
   it('fills every default: namespace mode, rollback off with Blueprint B numbers, no metrics', () => {
     expect(kubernetesConfigOf(base)).toEqual({
       mode: 'namespace',

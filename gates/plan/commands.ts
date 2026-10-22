@@ -9,7 +9,7 @@ export const DEFAULT_ALLOW = ['npm test', 'npm run lint', 'npm run typecheck', '
 
 // Fence tags that hold commands; an untagged fence is read as commands too.
 const SHELL_TAGS = new Set(['', 'bash', 'sh', 'shell', 'zsh', 'powershell', 'ps1', 'pwsh', 'console', 'cmd', 'bat']);
-const FENCE = /^```\s*(\S*)/;
+const FENCE = /^ {0,3}(`{3,}|~{3,})\s*(\S*)/;
 // A command word, with or without a Windows extension, followed by a space or the end: `node:fs`
 // or `git-rules.ts` is a name, not a command; `git.exe push` is a command.
 const COMMAND_WORDS = /^(?:npm|npx|node|git|rm|curl|wget|pnpm|yarn|bun|bash|sh|powershell|pwsh|del|rmdir|chmod|sudo)(?:\.(?:exe|cmd|bat|ps1))?(?:\s|$)/i;
@@ -26,16 +26,28 @@ interface Fenced {
 const inlineCommands = (line: string) =>
   [...line.matchAll(/`([^`]+)`/g)].map((m) => m[1]!.trim()).filter((c) => COMMAND_WORDS.test(c));
 
+const closes = (line: string, fence: RegExpExecArray, marker: string) =>
+  fence[1][0] === marker[0] && fence[1].length >= marker.length && line.trim() === fence[1];
+
+function collectLine(out: Fenced, shell: boolean | undefined, line: string): void {
+  if (shell === undefined) out.inline.push(...inlineCommands(line));
+  else if (shell) out.shell.push(line);
+}
+
 /** Sorts each line of the plan: inside a shell fence, inside another fence, or outside. */
 function sortLines(plan: string): Fenced {
   const out: Fenced = { shell: [], inline: [] };
   // undefined outside a fence; inside one, whether it is a shell fence.
   let shell: boolean | undefined;
+  let marker!: string;
   for (const line of plan.split(/\r?\n/)) {
     const fence = FENCE.exec(line);
-    if (fence) shell = shell === undefined ? SHELL_TAGS.has(fence[1]!.toLowerCase()) : undefined;
-    else if (shell === undefined) out.inline.push(...inlineCommands(line));
-    else if (shell) out.shell.push(line);
+    if (fence && shell === undefined) {
+      marker = fence[1];
+      shell = SHELL_TAGS.has(fence[2]!.toLowerCase());
+    }
+    else if (fence && closes(line, fence, marker)) shell = undefined;
+    else collectLine(out, shell, line);
   }
   return out;
 }

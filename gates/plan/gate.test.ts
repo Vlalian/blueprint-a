@@ -9,6 +9,9 @@ const io = { readPlan: () => GOOD_PLAN, readTicket: () => GOOD_TICKET, exists: (
 const NONE = { lint: [], 'cross-artifact': [], ears: [], commands: [], facts: [] };
 
 describe('planGate', () => {
+  it('judges CRLF plans and tickets exactly like LF input', () => {
+    expect(planGate({ plan: 'p.md', ticket: 't.md' }, { ...io, readPlan: () => GOOD_PLAN.replaceAll('\n', '\r\n'), readTicket: () => GOOD_TICKET.replaceAll('\n', '\r\n') })).toEqual(planGate({ plan: 'p.md', ticket: 't.md' }, io));
+  });
   it('passes a good plan, reporting each of the five checks', () => {
     expect(planGate({ plan: 'p.md', ticket: 't.md' }, io)).toEqual({
       gate: 'plan',

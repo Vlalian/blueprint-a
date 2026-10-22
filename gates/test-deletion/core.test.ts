@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { deletedTests, testCases, testTitles } from './core.ts';
 
+it('follows each chained disabled group call across whitespace without swallowing following tests', () => {
+  expect(testCases("describe.skip.each([1]) \t ('group', () => { it('off', () => {}); }) \n (it('also off', () => {})); it('on', () => {});", 'a.test.ts')).toEqual([
+    { title: 'off', active: false }, { title: 'also off', active: false }, { title: 'on', active: true },
+  ]);
+  expect(testCases("describe.skip.each([1])('group', () => { it('off', () => {}); })(it('also off', () => {}));it('on', () => {});", 'a.test.ts')).toEqual([
+    { title: 'off', active: false }, { title: 'also off', active: false }, { title: 'on', active: true },
+  ]);
+});
+
 describe('testTitles', () => {
   it('finds it() and test() titles in any quote style, including .each and .only', () => {
     const src = `
@@ -10,7 +19,7 @@ describe('testTitles', () => {
       it.only('focused', () => {});
       describe('group', () => {});
     `;
-    expect(testTitles(src)).toEqual(['adds', 'subtracts', 'doubles %i', 'focused']);
+    expect(testTitles(src, 'a.test.ts')).toEqual(['adds', 'subtracts', 'doubles %i', 'focused']);
   });
 });
 
@@ -58,6 +67,8 @@ describe('deletedTests: a test switched off counts as deleted (decision 36)', ()
   const one = (head: string, allowed: string[] = []) => deletedTests({ [file]: "it('one', () => {});" }, { [file]: head }, allowed);
 
   it.each([
+    "describe.skip ('group', () => { it('one', () => {}); });",
+    "describe.skip.each([[1]]) ('group', () => { it('one', () => {}); });",
     "it.skip('one', () => {});",
     "it.todo('one');",
     "test.skip('one', () => {});",
@@ -123,7 +134,7 @@ describe('deletedTests: a test switched off counts as deleted (decision 36)', ()
 describe('testCases', () => {
   it('marks each test as on or off', () => {
     const src = "it('a', () => {});\nxit('b', () => {});\nxdescribe('g', () => { test('c', () => {}); });\ntest('d', () => {});";
-    expect(testCases(src)).toEqual([
+    expect(testCases(src, 'a.test.ts')).toEqual([
       { title: 'a', active: true },
       { title: 'b', active: false },
       { title: 'c', active: false },
@@ -131,11 +142,35 @@ describe('testCases', () => {
     ]);
   });
 
+  it.each([
+    ['a line comment', "// it('one', () => {});"],
+    ['a block comment', "/* it('one', () => {}); */"],
+    ['a JSDoc comment', "/**\n * it('one', () => {});\n */"],
+    ['a string literal', `const s = "it('one', () => {})";`],
+    ['a template literal', "const s = `it('one', () => {})`;"],
+  ])('finds no test call in %s (ticket 74, finding 8)', (_label, src) => {
+    expect(testCases(src, 'a.test.ts')).toEqual([]);
+    expect(deletedTests({ 'tests/a.test.ts': "it('one', () => {});" }, { 'tests/a.test.ts': src }, [])).toEqual([{ file: 'tests/a.test.ts', title: 'one' }]);
+  });
+
+  it('reads a file as its name says: text in JSX is no test call', () => {
+    const tsx = "const el = <p>it('fake', () => {})</p>;\nit('two', () => {});";
+    expect(testCases(tsx, 'tests/a.test.tsx').map((c) => c.title)).toEqual(['two']);
+    expect(testCases(tsx, 'tests/a.test.ts').map((c) => c.title)).toEqual(['fake', 'two']);
+    const base = { 'tests/a.test.tsx': "it('fake', () => {});\nit('two', () => {});" };
+    expect(deletedTests(base, { 'tests/a.test.tsx': tsx }, [])).toEqual([{ file: 'tests/a.test.tsx', title: 'fake' }]);
+  });
+
+  it('is not switched off by a skipped group that is only a comment or a string', () => {
+    expect(testCases("// describe.skip('g', () => {\nit('a', () => {});", 'a.test.ts')).toEqual([{ title: 'a', active: true }]);
+    expect(testCases("const s = 'xdescribe(';\nit('a', () => {});", 'a.test.ts')).toEqual([{ title: 'a', active: true }]);
+  });
+
   it('does not take a word that ends in it or test for a test call', () => {
-    expect(testCases("submit('a');\nlatest('b');\nexit('c');")).toEqual([]);
+    expect(testCases("submit('a');\nlatest('b');\nexit('c');", 'a.test.ts')).toEqual([]);
   });
 
   it('runs a skipped group to the end of the file when its call never closes', () => {
-    expect(testCases("describe.skip('g', () => { it('a', () => {});")).toEqual([{ title: 'a', active: false }]);
+    expect(testCases("describe.skip('g', () => { it('a', () => {});", 'a.test.ts')).toEqual([{ title: 'a', active: false }]);
   });
 });

@@ -14,13 +14,13 @@ import { emit, failClosed } from '../lib/contract.ts';
 import { git } from '../lib/git.ts';
 import { isTestFile } from '../lib/test-files.ts';
 import { ensureTempDirExcluded, excludeFile } from './exclude.ts';
-import { testCommandLine } from './core.ts';
+import { redRunResult, testCommandLine } from './core.ts';
 import { redCheckGate } from './gate.ts';
 
 const { values } = parseArgs({
   options: {
     base: { type: 'string' },
-    'test-command': { type: 'string', default: 'npx vitest run' },
+    'test-command': { type: 'string', default: 'npx vitest run --reporter=json' },
     allow: { type: 'string', multiple: true, default: [] },
     cwd: { type: 'string' },
   },
@@ -60,8 +60,7 @@ emit(
         mkdirSync(dirname(join(dir, file)), { recursive: true });
         copyFileSync(join(cwd, file), join(dir, file));
       },
-      runTest: (dir, file) =>
-        spawnSync(testCommandLine(values['test-command'], file, process.platform), { cwd: dir, shell: true, timeout: 5 * 60 * 1000 }).status ?? -1,
+      runTest: (dir, file) => redRunResult(spawnSync(testCommandLine(values['test-command'], file, process.platform), { cwd: dir, shell: true, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 5 * 60 * 1000 }), join(dir, file)), // nosemgrep: spawn-shell-true, detect-child-process -- runs the configured test command, a shell string by design (the owner, 2026-10-21)
     }),
   ),
 );

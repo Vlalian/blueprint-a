@@ -175,6 +175,10 @@ export type GateArgs = {
   /** Stryker's timeoutMS and timeoutFactor, as given; unset leaves Stryker's own defaults. */
   timeoutMs?: string;
   timeoutFactor?: string;
+  /** Stryker's dryRunTimeoutMinutes (ticket 85): the whole-suite first run outgrew its 5-minute default. */
+  dryRunTimeoutMinutes?: string;
+  /** The highest CRAP a graded function may score (ticket 83); unset keeps CRAP_CEILING. */
+  crapCeiling?: string;
 };
 
 /**
@@ -192,6 +196,8 @@ const VALUE_FLAGS = new Map<string, (args: GateArgs, value: string) => void>([
   ['--json', (args, value) => { args.json = value; }],
   ['--timeout-ms', (args, value) => { args.timeoutMs = value; }],
   ['--timeout-factor', (args, value) => { args.timeoutFactor = value; }],
+  ['--dry-run-timeout-minutes', (args, value) => { args.dryRunTimeoutMinutes = value; }],
+  ['--crap-ceiling', (args, value) => { args.crapCeiling = value; }],
 ]);
 
 /** `--flag=value` as its flag and value; anything without an `=` is all flag, with no value. */
@@ -213,7 +219,9 @@ function readArg(args: GateArgs, argv: string[], i: number): number {
       put(args, inline);
       return i;
     }
-    put(args, argv[i + 1]);
+    const next = argv[i + 1];
+    if (next === undefined) throw new Error(`${flag} needs a value`);
+    put(args, next);
     return i + 1;
   }
   if (arg === '--whole-file') args.wholeFile = true;

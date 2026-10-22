@@ -43,6 +43,7 @@ export type FunctionComplexity = FunctionRef & {
    * the callback, from the callback's own.
    */
   startColumn?: number;
+  endColumn?: number;
 };
 
 type FunctionNode =
@@ -192,7 +193,8 @@ export function measureComplexity(file: string, source: string): FunctionComplex
     walk(fn);
 
     const startColumn = tree.getLineAndCharacterOfPosition(fn.getStart(tree)).character;
-    found.push({ name: nameOf(fn, tree), file, ...rangeOf(fn, tree), startColumn, complexity });
+    const endColumn = tree.getLineAndCharacterOfPosition(fn.getEnd()).character;
+    found.push({ name: nameOf(fn, tree), file, ...rangeOf(fn, tree), startColumn, endColumn, complexity });
   });
 
   // Already in source order, so the sort this used to end with is gone. The

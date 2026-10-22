@@ -1,0 +1,186 @@
+{
+  "$comment": "A walker session on the fixture app (ticket 23 Pass-when), as test/helpers/walk-replay.ts replays it: the session's --output-format json result, and its tool calls in order. A navigate is made against the served app, a screenshot writes an image, the browser's context video is written as video/page-1.webm, and a Write writes its content (kept as JSON here, so it reads). {URL}, {HEAD}, {PATCH} and {STARTED} are the walk's own. Here the walker marked AC1 pass without citing anything.",
+  "result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "duration_ms": 182000,
+    "num_turns": 17,
+    "result": "Walked AC1 and QA2 on the walk/sv-50 preview; QA1 not run. Report and recipe written.",
+    "modelUsage": {
+      "claude-sonnet-4-5": {
+        "inputTokens": 210000,
+        "outputTokens": 9000,
+        "cacheReadInputTokens": 150000,
+        "cacheCreationInputTokens": 20000,
+        "costUSD": 0.9
+      }
+    }
+  },
+  "calls": [
+    {
+      "tool": "mcp__playwright__browser_navigate",
+      "input": {
+        "url": "{URL}/"
+      }
+    },
+    {
+      "tool": "mcp__playwright__browser_snapshot",
+      "input": {}
+    },
+    {
+      "tool": "mcp__playwright__browser_take_screenshot",
+      "input": {
+        "filename": ".walk/sv-50/01-home.png"
+      }
+    },
+    {
+      "tool": "mcp__playwright__browser_click",
+      "input": {
+        "element": "Settings link",
+        "target": "e7"
+      }
+    },
+    {
+      "tool": "mcp__playwright__browser_navigate",
+      "input": {
+        "url": "{URL}/settings"
+      }
+    },
+    {
+      "tool": "mcp__playwright__browser_snapshot",
+      "input": {}
+    },
+    {
+      "tool": "mcp__playwright__browser_take_screenshot",
+      "input": {
+        "filename": ".walk/sv-50/02-settings.png"
+      }
+    },
+    {
+      "tool": "mcp__playwright__browser_take_screenshot",
+      "input": {
+        "filename": ".walk/sv-50/03-hint.png"
+      }
+    },
+    {
+      "tool": "mcp__playwright__browser_console_messages",
+      "input": {}
+    },
+    {
+      "tool": "mcp__playwright__browser_network_requests",
+      "input": {}
+    },
+    {
+      "tool": "mcp__playwright__browser_evaluate",
+      "input": {
+        "function": "() => axe.run()"
+      }
+    },
+    {
+      "tool": "Write",
+      "input": {
+        "file_path": ".walk/sv-50/report.json",
+        "content": {
+          "kind": "ticket",
+          "ticket": "sv-50",
+          "url": "{URL}",
+          "head": "{HEAD}",
+          "patchId": "{PATCH}",
+          "startedAt": "{STARTED}",
+          "viewport": "1280x800",
+          "video": ".walk/sv-50/walk.webm",
+          "stills": [
+            ".walk/sv-50/01-home.png",
+            ".walk/sv-50/02-settings.png",
+            ".walk/sv-50/03-hint.png"
+          ],
+          "items": [
+            {
+              "id": "AC1",
+              "source": "criterion",
+              "claim": "The settings page says 1 to 30 hours.",
+              "status": "pass",
+              "observed": "Under Hours the page reads 1 to 30 hours.",
+              "evidence": []
+            },
+            {
+              "id": "QA2",
+              "source": "qa",
+              "claim": "Open /settings and see it render with no console error, page error or 5xx.",
+              "status": "flag",
+              "observed": "It renders; the Hours field has no visible unit next to it.",
+              "evidence": [
+                {
+                  "video": ".walk/sv-50/walk.webm",
+                  "at": 6
+                },
+                {
+                  "screenshot": ".walk/sv-50/02-settings.png"
+                }
+              ]
+            },
+            {
+              "id": "QA1",
+              "source": "qa",
+              "claim": "Open / and see it render with no console error, page error or 5xx.",
+              "status": "not-run",
+              "reason": "the change set does not touch src/app/page.tsx"
+            }
+          ],
+          "extras": {
+            "console": [],
+            "pageErrors": [],
+            "network5xx": [],
+            "axe": [
+              {
+                "rule": "label",
+                "impact": "minor",
+                "target": "input#h"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "tool": "Write",
+      "input": {
+        "file_path": "tests/walk/sv-50.recipe.json",
+        "content": {
+          "name": "sv-50",
+          "covers": [
+            "AC1",
+            "QA2"
+          ],
+          "steps": [
+            {
+              "goto": "/"
+            },
+            {
+              "click": {
+                "role": "link",
+                "name": "Settings"
+              }
+            },
+            {
+              "see": {
+                "role": "heading",
+                "name": "Settings"
+              }
+            },
+            {
+              "see": {
+                "role": "spinbutton",
+                "name": "Hours"
+              }
+            },
+            {
+              "seeText": "1 to 30 hours"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -37,9 +37,9 @@ function crapLine(fn: CrapScore): string {
  * them. GATE-SCOPE asks for this number beside the verdict, so the post-test
  * sweep knows what it is walking into. Recorded, never failing the run.
  */
-function reportStanding(standing: CrapScore[]): void {
+function reportStanding(standing: CrapScore[], ceiling: number): void {
   if (standing.length === 0) return;
-  const over = standing.filter((fn) => fn.crap > CRAP_CEILING).sort((a, b) => b.crap - a.crap);
+  const over = standing.filter((fn) => fn.crap > ceiling).sort((a, b) => b.crap - a.crap);
   console.log(
     `\nLeft standing (not this change): ${standing.length} function(s) not graded, ` +
       `${over.length} over the ceiling — recorded, not gating.`,
@@ -94,13 +94,14 @@ export function report(
   result: ReturnType<typeof judge>,
   standing: CrapScore[] = [],
   suppressions: SuppressionList = { new: [], existing: [] },
+  ceiling = CRAP_CEILING,
 ): number {
   const worst = [...crap].sort((a, b) => b.crap - a.crap).slice(0, 5);
   console.log('Highest CRAP:');
   for (const fn of worst) console.log(crapLine(fn));
 
   reportCognitive(cognitive);
-  reportStanding(standing);
+  reportStanding(standing, ceiling);
 
   if (result.mutationSkipped) console.log('\nmutation skipped: CRAP failed first');
   else reportMutants(mutants, result.suppressed, suppressions);

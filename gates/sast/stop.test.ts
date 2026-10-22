@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { SastResult } from './gate.ts';
 import { changedInDiff, sastCheck, sastFor } from './stop.ts';
 
+it('limits target headers to the pre-hunk region of each diff and trims CRLF whitespace', () => {
+  expect(changedInDiff('diff --git a/a b/a\n +++ b/fake.ts\n+++ b/real.ts\n@@ -1 +1 @@')).toEqual(['real.ts']);
+  expect(changedInDiff('diff --git a/a b/a\n+++ b/@@.ts\n@@ -1 +1 @@\n+diff --git a/fake b/fake\n+++ b/fake.ts')).toEqual(['@@.ts']);
+  expect(changedInDiff('diff --git a/a b/a\r\n+++ b/one.ts  \r\n@@ -1 +1 @@\r\n+++ b/fake.ts\r\ndiff --git a/b b/b\r\n+++ b/two.ts\r\n@@ -1 +1 @@\r\n+++ b/fake2.ts')).toEqual(['one.ts', 'two.ts']);
+});
+
 const diff = [
   'diff --git a/src/a.ts b/src/a.ts',
   '--- a/src/a.ts',
@@ -24,6 +30,9 @@ const diff = [
 const finding = { rule: 'r', severity: 'ERROR', file: 'src/a.ts', line: 2, message: 'bad' };
 
 describe('changedInDiff', () => {
+  it('includes a file with only removed lines when the file remains', () => {
+    expect(changedInDiff('diff --git a/a.ts b/a.ts\n--- a/a.ts\n+++ b/a.ts\n@@ -1 +0,0 @@\n-x();')).toEqual(['a.ts']);
+  });
   it('names each file the diff adds lines to, once', () => {
     expect(changedInDiff(diff)).toEqual(['src/a.ts', 'Api/B.cs']);
   });

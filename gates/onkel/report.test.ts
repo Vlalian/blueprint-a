@@ -288,6 +288,12 @@ describe('report — the ranked lists, exactly', () => {
     ]);
   });
 
+  it('counts standing functions over the ceiling it is given (ticket 83)', () => {
+    const standing = [7, 6, 12, 9].map((c) => crapOf(`s${c}`, c));
+    const out = lines(() => report([], [], [], PASS, standing, { new: [], existing: [] }, 9));
+    expect(out).toContain('Left standing (not this change): 4 function(s) not graded, 1 over the ceiling — recorded, not gating.');
+  });
+
   it('lists standing functions over the ceiling worst first, and not one at the ceiling', () => {
     const standing = [7, 6, 12, 9].map((c) => crapOf(`s${c}`, c));
     const out = lines(() => report([], [], [], PASS, standing));

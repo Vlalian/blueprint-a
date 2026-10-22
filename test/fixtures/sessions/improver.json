@@ -1,0 +1,1 @@
+{"type":"result","subtype":"success","is_error":false,"duration_ms":90000,"num_turns":6,"result":"2 proposals written to state/approvals/pending/improvement/","total_cost_usd":0.6,"modelUsage":{"claude-opus-4-1":{"inputTokens":40000,"outputTokens":4000,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.6}}}

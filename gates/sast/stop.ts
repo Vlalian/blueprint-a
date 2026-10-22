@@ -5,7 +5,6 @@
 
 import type { CheckResult } from '../four-checks/check.ts';
 import { exitCodeFor } from '../lib/contract.ts';
-import { addedLines } from '../lib/diff.ts';
 import { sastLines, type SastResult } from './gate.ts';
 
 export const NAME = 'sast';
@@ -13,8 +12,11 @@ export const NAME = 'sast';
 const COMMAND = 'Semgrep security rules (gates/sast) on the changed source files';
 const HOW = 'New security findings; fix them, or suppress one on its line with a reason: // nosemgrep: <rule> -- <reason>';
 
-/** The files a unified diff adds lines to, each once. */
-export const changedInDiff = (diff: string) => [...new Set(addedLines(diff).map((l) => l.file))];
+/** The surviving target files in a unified diff, including deletion-only hunks. */
+export const changedInDiff = (diff: string) => [...new Set(diff.split(/^diff --git /m).flatMap((part) => {
+  const header = part.split(/^@@/m)[0];
+  return [...header.matchAll(/^\+\+\+ b\/(.+)/gm)].map((m) => m[1].trimEnd());
+}))];
 
 /** A sast run as one of the four checks' results: failed on a new blocking finding, could not run (2) with what to install. */
 export function sastCheck(r: SastResult): CheckResult {

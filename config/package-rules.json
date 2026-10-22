@@ -1,0 +1,5 @@
+{
+  "$comment": "What runner/check-package.ts refuses in a folder about to leave the repo, beside its built-in secrets, hidden Unicode, personal paths and email addresses: the names that must not travel (people, private projects, internal hosts) and the private repository owners whose links must not travel. Add your own.",
+  "deny": [],
+  "privateRepos": []
+}

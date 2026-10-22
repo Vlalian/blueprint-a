@@ -1,0 +1,17 @@
+{
+  "$comment": "The supply-chain gate's exceptions (gates/supply-chain, F4) for this package's own dev tools: a licence off the gate's allowlist, or an install script, each with why it is accepted. A project keeps its own list here; the gate reads it unless --allowlist names another file.",
+  "licenceExceptions": {
+    "caniuse-lite": "CC-BY-4.0: browser-support data, no code; pulled in by the test toolchain only",
+    "lightningcss*": "MPL-2.0: file-level copyleft, used unmodified as a build tool by vitest; never shipped",
+    "glob": "BlueOak-1.0.0: a permissive licence (Blue Oak Model License), not yet on the SPDX allowlist above",
+    "lru-cache": "BlueOak-1.0.0: a permissive licence (Blue Oak Model License), not yet on the SPDX allowlist above",
+    "minimatch": "BlueOak-1.0.0: a permissive licence (Blue Oak Model License), not yet on the SPDX allowlist above",
+    "minipass": "BlueOak-1.0.0: a permissive licence (Blue Oak Model License), not yet on the SPDX allowlist above",
+    "path-scurry": "BlueOak-1.0.0: a permissive licence (Blue Oak Model License), not yet on the SPDX allowlist above"
+  },
+  "installScripts": {
+    "fsevents": "macOS file watcher with a native build; optional, never installed on Windows or Linux",
+    "@parcel/watcher": "a native file watcher in the test toolchain; its install script picks the prebuilt binary for the platform",
+    "unrs-resolver": "the module resolver jest uses; its install script picks the prebuilt binary for the platform"
+  }
+}

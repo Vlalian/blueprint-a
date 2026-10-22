@@ -1,0 +1,15 @@
+{
+  "$comment": "The flow tools' settings (flow/, node flow/cli.ts <tool>). Every field and its default is in docs/02-flow-and-roles.md; a field left out keeps its default. families: one entry per model family, with the shell commands that build and review a round ({prompt}, {worktree}, {branch}, {base}, {ticket}, {head}, {out} reach the command as environment variables, so write them bare, never in quotes of your own). The two below are examples: replace them with the commands of the harnesses and models you run.",
+  "integrationBranch": "main",
+  "buildCap": 3,
+  "owner": "the owner",
+  "ticketFolder": "docs/tickets",
+  "host": { "host": "github" },
+  "families": [
+    { "name": "local", "build": "opencode run --file {prompt}", "review": "opencode run --file {prompt}", "timeoutMs": 3600000 },
+    { "name": "cloud", "build": "agent-cli build --prompt-file {prompt} --cwd {worktree}", "review": "agent-cli review --prompt-file {prompt} --out {out}", "timeoutMs": 3600000 }
+  ],
+  "gate": ["npm ci", "npm run gate -- --base {base} --merge {branch}"],
+  "checks": ["npm run typecheck", "npm test"],
+  "typecheck": "npm run typecheck"
+}

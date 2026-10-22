@@ -88,7 +88,7 @@ function judge(opts: SastOptions, io: SastIo): SastResult {
   const findings = fresh.filter((f) => f.severity === 'ERROR');
   const warnings = fresh.filter((f) => f.severity !== 'ERROR');
   const note = unpinned(head.version);
-  return { gate: 'sast', pass: findings.length === 0, scanned, findings, warnings, suppressed, notScanned: head.notScanned, semgrep: head.version, ...(note === undefined ? {} : { note }) };
+  return { gate: 'sast', pass: findings.length === 0 && head.notScanned.length === 0, scanned, findings, warnings, suppressed, notScanned: head.notScanned, semgrep: head.version, ...(note === undefined ? {} : { note }) };
 }
 
 /** The gate's verdict; Semgrep missing or failing is a result that could not run. */
@@ -100,7 +100,7 @@ const findingLine = (label: string) => (f: Finding) => `${label} ${f.file}:${f.l
 /** The result as lines for a person: each blocking finding and warning at its line, any note, or why it could not run. */
 export function sastLines(r: SastResult): string[] {
   if (r.error !== undefined) return [`could not run: ${r.error}`];
-  return [...(r.findings ?? []).map(findingLine('BLOCKING')), ...(r.warnings ?? []).map(findingLine('reported')), ...(r.note === undefined ? [] : [r.note])];
+  return [...(r.findings ?? []).map(findingLine('BLOCKING')), ...(r.warnings ?? []).map(findingLine('reported')), ...(r.notScanned ?? []).map((file) => `not scanned: ${file}`), ...(r.note === undefined ? [] : [r.note])];
 }
 
 type Git = (args: string[]) => { status: number | null; stdout: string };

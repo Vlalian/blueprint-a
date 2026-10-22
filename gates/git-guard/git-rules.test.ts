@@ -5,6 +5,19 @@ import { blockedReason, hookEnvReason } from './git-rules.ts';
 const check = (line: string, branch = 'ticket/01') =>
   commandsOf(line).map((words) => blockedReason(words, { currentBranch: branch })).find(Boolean);
 
+it('reads scoped keys exactly and distinguishes push sections from ordinary sections', () => {
+  expect(check('git config --global --get remote.origin.url')).toBeUndefined();
+  expect(check('git config --get remote.origin.url extra')).toBe('changing push-destination config is not allowed');
+  expect(check('git config --remove-section user')).toBeUndefined();
+  expect(check('git config --remove-section user.remote.origin')).toBeUndefined();
+  expect(check('git config --remove-section push.extra')).toBeUndefined();
+  expect(check('git config --remove-section push')).toBe('changing push-destination config is not allowed');
+  expect(check('git config --edit')).toBe('editing git config is not allowed');
+  expect(check('git config -e')).toBe('editing git config is not allowed');
+  expect(check('git config -z')).toBeUndefined();
+  expect(check('git config edit')).toBe('editing git config is not allowed');
+});
+
 const FORCE = 'force push is never allowed';
 const DELETE = 'deleting a remote branch is not allowed';
 const HOOKS = 'skipping git hooks (--no-verify) is not allowed';
@@ -20,6 +33,66 @@ const FORM = expect.stringMatching(/^this git push is not a form the guard reads
 const toMain = (ref: string) => `push to ${ref} is not allowed; push the ticket branch and open a draft PR`;
 
 describe('blockedReason: what an agent may not do with git and gh', () => {
+  it.each(['--rename-section remote.staged remote.origin', '--remove-section remote.origin', 'rename-section branch.staged branch.ticket/01', 'remove-section url.staged', '--remove-section push', '--rename-section user remote.origin', '--global --remove-section remote.origin'])('blocks protected section operations: %s', (args) => {
+    expect(check(`git config ${args} && git push origin`)).toBe('changing push-destination config is not allowed');
+  });
+  it.each(['--edit', '-e', 'edit', '--global --edit', '--local -e'])('blocks config editors: %s', (args) => {
+    expect(check(`git config ${args}`)).toBe('editing git config is not allowed');
+  });
+  it.each(['--global remote.origin.url', '--local --get remote.origin.url', '--system --get-all remote.origin.push', 'get --worktree remote.origin.push'])('allows scoped config reads: %s', (args) => {
+    expect(check(`git config ${args}`)).toBeUndefined();
+  });
+  it.each(['--global remote.origin.url main', '--local --unset remote.origin.push', '--system set push.default matching', '--worktree --add branch.x.merge main', '--file config remote.origin.url main', '--file config --get remote.origin.url'])('refuses scoped destination writes and file forms: %s', (args) => {
+    expect(check(`git config ${args}`)).toBe('changing push-destination config is not allowed');
+  });
+  it.each([
+    'set-url origin https://example.com/new.git',
+    'set-url --push origin https://example.com/new.git',
+    'add other https://example.com/new.git',
+    'rename origin other',
+    'remove origin',
+    'rm origin',
+    'set-branches origin main',
+    'set-head origin main',
+    '-v set-url origin https://example.com/new.git',
+  ])('blocks remote config writes: git remote %s', (args) => {
+    expect(check(`git remote ${args}`, 'ticket/81-x')).toBe('changing push-destination config is not allowed');
+  });
+  it.each(['', '-v', 'show origin', 'get-url origin', 'get-url --push origin', 'prune origin'])('allows git remote %s', (args) => {
+    expect(check(`git remote ${args}`)).toBeUndefined();
+  });
+  it.each(['remote.origin.url', 'remote.origin.pushurl', 'push.default'])('allows reading a lone config key %s', (key) => {
+    expect(check(`git config ${key}`)).toBeUndefined();
+  });
+  it.each([
+    'remote.origin.url https://example.com/new.git',
+    'remote.origin.pushurl https://example.com/new.git',
+    '--unset remote.origin.url',
+    '--unset-all remote.origin.url',
+    '--add remote.origin.url https://example.com/new.git',
+    '--replace-all remote.origin.url https://example.com/new.git',
+    'set remote.origin.url https://example.com/new.git',
+    'unset remote.origin.url',
+  ])('blocks config write forms: git config %s', (args) => {
+    expect(check(`git config ${args}`)).toBe('changing push-destination config is not allowed');
+  });
+  it.each(['remote.origin.push', 'remote.origin.mirror', 'remote.pushDefault', 'branch.ticket/01.remote', 'branch.ticket/01.pushRemote', 'branch.ticket/01.merge', 'push.default', 'url.x.pushInsteadOf'])('blocks changing push destination config %s', (key) => {
+    expect(check(`git config ${key} main`)).toBe('changing push-destination config is not allowed');
+  });
+  it('matches a push-destination key whole and in any case, never a key that only contains one (gate 81 mutants)', () => {
+    expect(check('git config REMOTE.Origin.URL main')).toBe('changing push-destination config is not allowed');
+    expect(check('git config url.x.insteadOf main')).toBe('changing push-destination config is not allowed');
+    expect(check('git config url.https://example.com/.pushInsteadOf main')).toBe('changing push-destination config is not allowed');
+    expect(check('git config branch.feature/x.pushRemote main')).toBe('changing push-destination config is not allowed');
+    expect(check('git config --add remote.origin.url=x main')).toBe('changing push-destination config is not allowed');
+    expect(check('git config user.remote.origin.url main')).toBeUndefined();
+    expect(check('git config remote.origin.urls main')).toBeUndefined();
+    expect(check('git config my.push.default main')).toBeUndefined();
+    expect(check('git config push.defaults main')).toBeUndefined();
+  });
+  it.each(['--get', '--get-all', 'get'])('allows reading a push-destination key with %s', (mode) => {
+    expect(check(`git config ${mode} remote.origin.push`)).toBeUndefined();
+  });
   it.each([
     'git status',
     'git',
@@ -151,6 +224,28 @@ describe('blockedReason: what an agent may not do with git and gh', () => {
       expect(check(`git ${option} x push --force`)).toBe(FORCE);
     },
   );
+
+  it('treats the night branches as protected: no push to night, no merge into night or main (ticket 74, finding 2)', () => {
+    const NIGHT = 'night/2026-10-04';
+    expect(check(`git push origin HEAD:${NIGHT}`, NIGHT)).toBe(toMain(NIGHT));
+    expect(check(`git push origin refs/heads/${NIGHT}`, NIGHT)).toBe(toMain(`refs/heads/${NIGHT}`));
+    expect(check(`git push origin ${NIGHT}:heads/${NIGHT}`, NIGHT)).toBe(toMain(`heads/${NIGHT}`));
+    expect(check('git push', NIGHT)).toBe(`push to ${NIGHT} is not allowed; you are on ${NIGHT}`);
+    const merge = (branch: string) => `merging into ${branch} needs the owner' consent; it goes through npm run flow:merge`;
+    expect(check('git merge topic', NIGHT)).toBe(merge(NIGHT));
+    expect(check('git merge --no-ff origin/ticket/01', 'main')).toBe(merge('main'));
+    expect(check('git pull origin ticket/01', 'master')).toBe(merge('master'));
+    expect(check('git merge --abort', NIGHT)).toBeUndefined();
+    expect(check(`git merge --no-ff origin/${NIGHT}`, 'ticket/74-control-holes')).toBeUndefined();
+    expect(check('git push origin ticket/nightly', 'ticket/nightly')).toBeUndefined();
+    expect(check('git push origin nightly', 'nightly')).toBeUndefined();
+    expect(check('git merge --quit', NIGHT)).toBeUndefined();
+    expect(check('git merge --abort topic', NIGHT)).toBe(merge(NIGHT));
+    for (const branch of ['night/', 'xnight/1', 'ticket/main', 'mainline', 'zzzzzzmain', 'zzzzzzzzzzzmain']) {
+      expect(check('git merge topic', branch), branch).toBeUndefined();
+      expect(check(`git push origin ${branch}`, branch), branch).toBeUndefined();
+    }
+  });
 
   it('blocks a bare push while on main, options or not', () => {
     expect(check('git push', 'main')).toBe('push to main is not allowed; you are on main');

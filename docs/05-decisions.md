@@ -26,6 +26,7 @@ it was made, so you can tell which ones still hold in your setting.
 | 19 | Watch public upstream workflows weekly; propose, never apply | Upstream ideas keep arriving; a script compare means no model call when nothing changed, and a licence check comes before borrowing |
 | 20 | Order: understand the flows, then spec, then build gates first, then export this package | Everything else relies on the gates, so they are built and proven first |
 | 21 | The reference build now builds tickets in cloud sessions and runs every gate locally before merging | Saves local resources and allows parallel builds; costs a round trip when a gate is red. (to confirm after the pilot) |
+| 22 | The package carries the gate runner (`runner/`): the self-gate, its merge mode and CI report, the test selection, the check-tree cache, the checks, the function registry and the metrics. This amends the package plan's first decision (docs plus the gates as code, "not the dispatcher, hooks or skills"): the parts of the reference's dispatcher these need ship, harness-neutral, with what was tied to the reference in `config/runner.json` | The gates alone were slow enough that a team would rebuild the runner first; the reference measured its gains (11-optimisations.md). The controller, the roles, the hooks and the skills still stay out |
 
 ## Where the ideas come from
 

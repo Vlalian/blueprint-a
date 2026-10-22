@@ -4,6 +4,16 @@ import { describe, expect, it } from 'vitest';
 import { judged, newFindings, parseScan, PINNED_SEMGREP, ruleOf, sastSources, suppressionsIn, unpinned, type Finding } from './core.ts';
 
 const FIXTURES = join(import.meta.dirname, '..', '..', 'test', 'fixtures', 'sast');
+
+it('lexes JSX comments while ignoring text and strings that resemble comments', () => {
+  expect(suppressionsIn('x(); # nosemgrep: rule -- midline')).toEqual([]);
+  expect(suppressionsIn('#nosemgrep: rule -- adjacent')).toEqual([{ line: 1, rules: ['rule'], reason: 'adjacent', alone: true }]);
+  expect(suppressionsIn('#   nosemgrep: rule -- spaced')).toEqual([{ line: 1, rules: ['rule'], reason: 'spaced', alone: true }]);
+  expect(suppressionsIn('const x = <div>{/* nosemgrep: rule -- jsx */\n}</div>;')).toEqual([{ line: 1, rules: ['rule'], reason: 'jsx', alone: false }]);
+  expect(suppressionsIn('  # nosemgrep: rule -- legacy')).toEqual([{ line: 1, rules: ['rule'], reason: 'legacy', alone: true }]);
+  expect(suppressionsIn('# nosemgrepExtra: rule -- invalid')).toEqual([]);
+  expect(suppressionsIn('const x = "# nosemgrep: rule -- string";')).toEqual([]);
+});
 const recorded = (...path: string[]) => readFileSync(join(FIXTURES, ...path), 'utf8');
 
 const finding = (over: Partial<Finding> = {}): Finding => ({ rule: 'javascript.lang.security.detect-child-process', severity: 'ERROR', file: 'src/a.ts', line: 2, message: 'm', ...over });
@@ -91,9 +101,19 @@ describe('sastSources', () => {
   it('leaves out tests and anything in a fixtures folder', () => {
     expect(sastSources(['src/a.test.ts', 'src/b.spec.ts', 'test/fixtures/sast/x.ts', 'fixtures/y.cs', 'src/myfixtures/z.ts'])).toEqual(['src/myfixtures/z.ts']);
   });
+
+  it('leaves out the top-level dist folder, generated copies of sources it scans already (the owner, 2026-10-21)', () => {
+    expect(sastSources(['dist/blueprint-a/gates/canary/cli.ts', 'dist/a.js', 'src/dist/b.ts', 'distx/c.ts'])).toEqual(['src/dist/b.ts', 'distx/c.ts']);
+  });
 });
 
 describe('suppressionsIn', () => {
+  it('ignores comment markers inside string literals', () => {
+    expect(suppressionsIn('const s = "// nosemgrep: rule-a -- ours";')).toEqual([]);
+    expect(suppressionsIn('const s = `/* nosemgrep: rule-a -- ours */`;')).toEqual([]);
+    expect(suppressionsIn('const s = `text\n// nosemgrep: rule-a -- ours\n`;')).toEqual([]);
+    expect(suppressionsIn('const pattern = /[// nosemgrep: rule-a -- ours]/;')).toEqual([]);
+  });
   it('reads the rule and the reason of each nosemgrep comment, by line', () => {
     const text = ['a', 'x(); // nosemgrep: detect-child-process -- our own input', '  # nosemgrep: r1, r2 --  two  ', '/* nosemgrep */'].join('\n');
     expect(suppressionsIn(text)).toEqual([

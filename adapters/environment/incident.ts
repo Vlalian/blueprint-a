@@ -60,8 +60,12 @@ function act(env: EnvironmentAdapter, release: string, evidence: string, history
   if (!rule.enabled) return outcome('alert', 'regression-alert-only', `${evidence}. Rollback is off in the project config; alert only.`, history);
   const blocked = cooldownBlock(history, now, rule);
   if (blocked) return outcome('alert', 'rollback-refused', `${evidence}. No rollback: ${blocked}.`, history);
-  const done = env.rollback(release);
-  return outcome('rollback', 'rolled-back', `${evidence}. Rolled back: ${done.detail}`, [...history, { release, at: now }]);
+  try {
+    const done = env.rollback(release);
+    return outcome('rollback', 'rolled-back', `${evidence}. Rolled back: ${done.detail}`, [...history, { release, at: now }]);
+  } catch (e) {
+    return outcome('alert', 'rollback-failed', `${evidence}. Rollback failed: ${String(e)}`, history);
+  }
 }
 
 /** Judges one production release that went live at liveAt; rolls it back only when the config allows and the cooldown has passed. */

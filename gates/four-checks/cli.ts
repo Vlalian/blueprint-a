@@ -7,21 +7,22 @@ import { emit, failClosed } from '../lib/contract.ts';
 import { runChecks } from './check.ts';
 import { shellRunner } from './runner.ts';
 
-const { values } = parseArgs({ options: { config: { type: 'string' }, cwd: { type: 'string' } } });
-
-const cwd = values.cwd ?? process.cwd();
-
 function checksIn(path: string): Record<string, string> {
   return (JSON.parse(readFileSync(path, 'utf8')) as { checks?: Record<string, string> }).checks ?? {};
 }
 
+const cwdOf = (cwd: string | undefined) => cwd ?? process.cwd();
+const configExists = (path: string | undefined) => path !== undefined && existsSync(path);
+
 // process.exitCode, never process.exit(): exiting right after a write to a piped stderr crashes
 // Node on Windows (exit 0xC0000409), and the caller would read a crash instead of 2.
-if (!values.config || !existsSync(values.config)) {
-  process.stderr.write('usage: four-checks --config <project.json> [--cwd <dir>]\n');
-  process.exitCode = 2;
-} else {
-  const configPath = values.config;
+emit(failClosed('four-checks', () => {
+  const { values } = parseArgs({ options: { config: { type: 'string' }, cwd: { type: 'string' } } });
+  const cwd = cwdOf(values.cwd);
+  if (!configExists(values.config)) {
+    process.stderr.write('usage: four-checks --config <project.json> [--cwd <dir>]\n');
+    throw new Error('usage: four-checks --config <project.json> [--cwd <dir>]');
+  }
   // Reading the config runs inside failClosed, so a config that is not JSON exits 2, never 1.
-  emit(failClosed('four-checks', () => runChecks(checksIn(configPath), shellRunner, cwd)));
-}
+  return runChecks(checksIn(values.config!), shellRunner, cwd);
+}));

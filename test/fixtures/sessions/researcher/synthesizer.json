@@ -1,0 +1,1 @@
+{"type":"result","subtype":"success","is_error":false,"duration_ms":20000,"num_turns":4,"result":"Wrote research/2026-10-04-03-count-words.md","total_cost_usd":0.03,"modelUsage":{"claude-sonnet-4-5":{"inputTokens":20000,"outputTokens":3000,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.03}}}

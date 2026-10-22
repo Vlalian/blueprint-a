@@ -27,7 +27,7 @@ function repo() {
   g('commit', '-qm', 'base');
   const record = join(dir, '..', `${dir.split(/[\\/]/).pop()}.args`);
   const recorder = join(dir, '..', `${dir.split(/[\\/]/).pop()}.recorder.cjs`);
-  writeFileSync(recorder, `require('fs').appendFileSync(${JSON.stringify(record)}, JSON.stringify(process.argv.slice(2)) + '\\n'); process.exitCode = (1);\n`);
+  writeFileSync(recorder, `require('fs').appendFileSync(${JSON.stringify(record)}, JSON.stringify(process.argv.slice(2)) + '\\n'); console.log(JSON.stringify({testResults:[{name:require('path').resolve(process.argv.at(-1)),assertionResults:[{status:'failed'}]}]})); process.exitCode = (1);\n`);
   const run = () =>
     spawnSync(process.execPath, [CLI, '--base', 'HEAD', '--cwd', dir, '--test-command', `node "${recorder}"`], { encoding: 'utf8' });
   const recorded = () => readFileSync(record, 'utf8').trim().split('\n').map((l) => JSON.parse(l) as string[]);

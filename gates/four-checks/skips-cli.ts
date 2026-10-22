@@ -10,62 +10,72 @@
 // never run again.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { git } from '../lib/git.ts';
+import { failClosed } from '../lib/contract.ts';
 import { ensureTempDirExcluded, excludeFile } from '../red-check/exclude.ts';
 import { shellRunner } from './runner.ts';
 import { guardedTest, type SkipsIo } from './skips.ts';
 import { worktreeTree } from './tree.ts';
 
-const { values } = parseArgs({ options: { base: { type: 'string' }, report: { type: 'string' }, test: { type: 'string' }, cwd: { type: 'string' } } });
-const cwd = values.cwd ?? process.cwd();
-const command = String(values.test).replaceAll('{CWD}', cwd.split('\\').join('/'));
-const reportIn = (dir: string) => join(dir, String(values.report));
+const cwdOf = (cwd: string | undefined) => realpathSync(cwd ?? process.cwd());
 
-const readIfThere = (path: string) => (existsSync(path) ? readFileSync(path, 'utf8') : undefined);
+const result = failClosed('skipped-tests', () => {
+  const { values } = parseArgs({ options: { base: { type: 'string' }, report: { type: 'string' }, test: { type: 'string' }, cwd: { type: 'string' } } });
+  const cwd = cwdOf(values.cwd);
+  const command = String(values.test).replaceAll('{CWD}', cwd.split('\\').join('/'));
+  const reportIn = (dir: string) => join(dir, String(values.report));
 
-function readAndRemove(path: string): string | undefined {
-  const text = readIfThere(path);
-  rmSync(path, { force: true });
-  return text;
-}
+  const readIfThere = (path: string) => (existsSync(path) ? readFileSync(path, 'utf8') : undefined);
 
-function checkoutBase(base: string) {
-  const exclude = excludeFile(cwd, git(cwd, 'rev-parse', '--git-common-dir').trim());
-  ensureTempDirExcluded(exclude, { read: readIfThere, makeDir: (path) => mkdirSync(path, { recursive: true }), write: writeFileSync });
-  const dir = join(cwd, '.red-check', `skips-base-${process.pid}`);
-  git(cwd, 'worktree', 'add', '--detach', '--force', dir, base);
-  return { dir, remove: () => void spawnSync('git', ['worktree', 'remove', '--force', dir], { cwd }) };
-}
+  function readAndRemove(path: string): string | undefined {
+    const text = readIfThere(path);
+    rmSync(path, { force: true });
+    return text;
+  }
 
-const io: SkipsIo = {
-  test: (dir) => shellRunner(command, dir),
-  report: (dir) => readAndRemove(reportIn(dir)),
-  clearReport: (dir) => rmSync(reportIn(dir), { force: true }),
-  tree: worktreeTree,
-  treeOf: (ref) => git(cwd, 'rev-parse', `${ref}^{tree}`).trim(),
-  checkoutBase,
-  read: readIfThere,
-  write: (path, text) => {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, text);
-  },
-};
+  function checkoutBase(base: string) {
+    const exclude = excludeFile(cwd, git(cwd, 'rev-parse', '--git-common-dir').trim());
+    ensureTempDirExcluded(exclude, { read: readIfThere, makeDir: (path) => mkdirSync(path, { recursive: true }), write: writeFileSync });
+    const dir = join(cwd, '.red-check', `skips-base-${process.pid}`);
+    git(cwd, 'worktree', 'add', '--detach', '--force', dir, base);
+    return { dir, remove: () => void spawnSync('git', ['worktree', 'remove', '--force', dir], { cwd }) };
+  }
 
-function run(base: string): void {
-  const cache = join(resolve(cwd, git(cwd, 'rev-parse', '--git-common-dir').trim()), 'workflow-skips');
-  const r = guardedTest({ cwd, base, cache }, io);
-  process.stdout.write(r.output);
-  process.exitCode = r.exitCode;
-}
+  const io: SkipsIo = {
+    test: (dir) => shellRunner(command, dir),
+    report: (dir) => readAndRemove(reportIn(dir)),
+    clearReport: (dir) => rmSync(reportIn(dir), { force: true }),
+    tree: worktreeTree,
+    treeOf: (ref) => git(cwd, 'rev-parse', `${ref}^{tree}`).trim(),
+    checkoutBase,
+    read: readIfThere,
+    write: (path, text) => {
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, text);
+    },
+  };
 
-// process.exitCode, never process.exit(): exiting right after a write to a piped stderr crashes
-// Node on Windows (exit 0xC0000409).
-if (!values.base || !values.report || !values.test) {
-  process.stderr.write('usage: skips-cli --base <ref> --report <file> --test "<test command>" [--cwd <dir>]\n');
+  function run(base: string): void {
+    const cache = join(resolve(cwd, git(cwd, 'rev-parse', '--git-common-dir').trim()), 'workflow-skips');
+    const r = guardedTest({ cwd, base, cache }, io);
+    process.stdout.write(r.output);
+    process.exitCode = r.exitCode;
+  }
+
+  // process.exitCode, never process.exit(): exiting right after a write to a piped stderr crashes
+  // Node on Windows (exit 0xC0000409).
+  if (![values.base, values.report, values.test].every(Boolean)) {
+    process.stderr.write('usage: skips-cli --base <ref> --report <file> --test "<test command>" [--cwd <dir>]\n');
+    process.exitCode = 2;
+  } else {
+    run(values.base!);
+  }
+  return { gate: 'skipped-tests', pass: true };
+});
+if (result.error !== undefined) {
+  process.stderr.write(`${result.error}\n`);
   process.exitCode = 2;
-} else {
-  run(values.base);
 }

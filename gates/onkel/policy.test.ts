@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { judge, killCount, skipsMutation, CRAP_CEILING, type CrapScore, type MutantReport } from './policy.ts';
+import { crapCeilingOf, judge, killCount, skipsMutation, CRAP_CEILING, type CrapScore, type MutantReport } from './policy.ts';
 
 /**
  * Mode A's gates, which are absolute rather than a ratchet.
@@ -342,6 +342,27 @@ describe('untested files (found by the real-Stryker bites test)', () => {
   it('does not also report no-mutants for a run that stopped because nothing was tested', () => {
     const v = judge({ crap: [], mutants: [], untested: ['src/grade.ts'], ranMutation: true });
     expect(v.failures.map((f) => f.kind)).toEqual(['untested']);
+  });
+});
+
+describe('the CRAP ceiling from --crap-ceiling (ticket 83)', () => {
+  it('is 6 without the flag, and the number the flag gives', () => {
+    expect(crapCeilingOf(undefined)).toBe(6);
+    expect(crapCeilingOf('4')).toBe(4);
+    expect(crapCeilingOf('8.5')).toBe(8.5);
+  });
+
+  it('refuses a value that is not a positive number', () => {
+    for (const bad of ['0', '-1', 'six', '']) expect(() => crapCeilingOf(bad)).toThrow(`--crap-ceiling needs a positive number, not ${bad}`);
+  });
+
+  it('judges and skips mutation against the ceiling it is given', () => {
+    const five = [crap({ crap: 5 })];
+    expect(judge({ crap: five, mutants: [], ceiling: 4 }).failures.map((f) => f.detail)).toEqual(['CRAP 5.0 exceeds the ceiling of 4']);
+    expect(judge({ crap: five, mutants: [], ceiling: 5 }).verdict).toBe('pass');
+    expect(judge({ crap: [crap({ crap: 7 })], mutants: [], ceiling: 7 }).verdict).toBe('pass');
+    expect(skipsMutation(five, 4)).toBe(true);
+    expect(skipsMutation(five, 5)).toBe(false);
   });
 });
 

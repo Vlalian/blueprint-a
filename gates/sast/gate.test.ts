@@ -107,7 +107,8 @@ describe('sastGate with recorded Semgrep output', () => {
     const json = JSON.stringify({ version: '1.2.3', results: [], errors: [{ level: 'warn', type: 'Syntax error', path: 'src/ping.ts' }] });
     const { io } = fakeIo('new-error', { semgrep: () => ({ status: 0, stdout: json }) });
     const r = sastGate(opts(['src/ping.ts']), io);
-    expect(r).toMatchObject({ pass: true, semgrep: '1.2.3', notScanned: ['src/ping.ts: Syntax error'] });
+    expect(r).toMatchObject({ pass: false, semgrep: '1.2.3', notScanned: ['src/ping.ts: Syntax error'] });
+    expect(sastLines(r)).toContain('not scanned: src/ping.ts: Syntax error');
     expect(r.note).toMatch(/Semgrep 1.2.3 is running; the rules were pinned with 1.179.0/);
   });
 

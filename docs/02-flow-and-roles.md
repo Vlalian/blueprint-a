@@ -110,6 +110,81 @@ handoff gate validates it and generates the identifiers, timestamps and full com
 Whether review runs inside every run or only on request is a per-project choice
 (to confirm after the pilot).
 
+## The flow as the tools run it
+
+The package's `flow/` folder is the flow the reference build ran its own tickets with, for any
+harness and any host: `node flow/cli.ts <tool> [args]` in the repo, with `config/flow.json` read
+from it. No tool assumes a model, an agent CLI or a host: the model families and their commands,
+the host and the branch names are configuration.
+
+| Field of `config/flow.json` | Default | What it sets |
+|---|---|---|
+| `integrationBranch` | `main` | The branch tickets merge into, merged into every open ticket branch after each merge |
+| `buildCap` | `3` | The most builds in flight, every family counted together |
+| `owner` | `the owner` | Whose yes a merge needs; named in the merge commit |
+| `ticketFolder` | `docs/tickets` | The ticket files, `<NN-name>.md` |
+| `branchPrefix` | `ticket/` | A ticket branch is this prefix and the ticket file's name |
+| `remote` | `origin` | The remote the branches live on |
+| `stateDir` | `state/flow` | The flow's state: the gate queue, the yeses, the reviews, the logs and the records |
+| `worktreeDir` | `.worktrees` | The flow's own worktrees: the gate's, each build's, the integration branch's |
+| `host` | `{"host": "github"}` | `adapters/host`: `github`, or `azure-devops` with `organization`, `project` and `repository` (the token in `AZURE_DEVOPS_PAT`) |
+| `families` | none | Each model family: `name`, `build` and `review` shell commands, `timeoutMs` (an hour) |
+| `gate` | `npm run gate -- --base {base} --merge {branch}` | The merge gate's commands, in order |
+| `checks` | `npx tsc --noEmit`, `npx vitest run` | What a build round must pass before handover |
+| `typecheck` | `npx tsc --noEmit` | The check on an open branch after the base is merged into it |
+| `afterMerge` | no commands, no files | Commands run in a merge before its commit, and the files they write that it commits |
+| `decisions` | `state/decisions.json` | The owner's decisions on waiting items (`flow/decisions.ts`'s JSON list) |
+| `pendingFolder` | `state/approvals/pending` | Where the learning loop files waiting lessons, `lesson/<run>-<n>.json` |
+| `directivesFile` | `AGENTS.md` | Where an accepted directive lesson is appended |
+| `skillsFolder` | `skills` | The skills an accepted skill lesson goes in, `<skill>/SKILL.md` (the coder's when it names none) |
+
+A family's command gets the round's brief on stdin and these placeholders: `{prompt}` (the
+brief's file), `{worktree}`, `{branch}`, `{base}`, `{ticket}`, `{head}` and `{out}` (where a review
+may write its JSON); the gate's commands get `{base}` and `{branch}`. A value never enters the
+command line: `{name}` becomes the variable `FLOW_NAME`, referenced in double quotes (`"$FLOW_NAME"`
+for sh, `"%FLOW_NAME%"` for cmd on Windows), so a path or a branch reaches the program as one
+literal argument whatever it holds. Write placeholders bare, never inside quotes of your own. cmd
+cannot hold a double quote or a line break inside its quotes, so on Windows a value with one is
+refused, and a value's trailing backslashes are doubled for the program's argument parser. Claude
+Code, Codex, opencode or a local model behind any CLI are one line each, for example
+`"review": "opencode run --file {prompt}"`.
+
+1. **Build** (`flow build <ticket> --family <name>`): takes a place under the build cap, works in
+   a worktree of its own with the base merged in, runs the family's build command, then every
+   `checks` command; only when all pass does it write `Builder: <family>` and `Round: <n>` into
+   the ticket's Result and push the ticket branch. `flow in-flight start|end` records a build the
+   flow did not start (a cloud session, a person).
+2. **Done** (`flow done`): the ticket branches whose ticket file has a `## Result` section.
+3. **Gate** (`flow gate-queue add <branch>`, then `run`): one gate at a time, under a lock in the
+   state folder under git's common directory (one lock for every worktree of the repo), in the
+   flow's gate worktree: the base and the branch merged without a commit, then each `gate`
+   command; green, red at the failing command, or a conflict.
+4. **Review** (`flow review <ticket>`): a configured family **other than** the one in the last
+   `Builder:` line reviews the exact head on the remote, the change since its last review; its
+   JSON must match the review schema (`gates/review-schema`). The builder's own family is
+   refused. Fix rounds go back to step 1 and are reviewed again.
+5. **Merge** (`flow merge --consent <ticket> "<words>"`, `flow merge --review <ticket> <family>
+   <findings.json>`, then `flow merge <ticket>`): only on the head the owner said yes to, the
+   gate passed and another family reviewed with every finding fixed or declined with a reason,
+   and only while the base is the one the gate ran on. The merge runs `afterMerge`, pushes the
+   base, and merges it into every open ticket branch no build is writing to, each typechecked in
+   its own worktree and pushed only when clean; a conflict leaves the branch as it was, listed.
+6. **Status** (`flow status`): every open build, the gate queue and each latest gate, the builds
+   in flight by family against the cap, and a warning above it.
+7. **Pull request and CI** (`flow pr`, `flow watch-pr`, `flow ledger`): the draft PR against the
+   integration branch, the CI watch on one exact commit and the SHA ledger, on GitHub or Azure
+   DevOps through `adapters/host`. On Azure DevOps the watch reads the pipeline runs and the
+   branch policies of the PR's exact head.
+8. **Lessons** (`flow apply-lessons`): each lesson the owner accepted in `decisions`, and only
+   those, is written where the owner's decision (else the lesson) says, with its approval id
+   (the item and the moment it was accepted), never twice: a section in `directivesFile`, a rule
+   in a skill under `skillsFolder`, or a gate ticket draft in `<stateDir>/lessons/gate/`. A lesson
+   that does not check out (not waiting, broken, a skill that is not there) is refused and
+   reported, exit 1, with nothing written for it.
+
+Every build and review round, and each branch the base was merged into, is a record in
+`<stateDir>/observations.jsonl` for the evaluation (`flow/evaluate.ts`) to count.
+
 ## Optional extras in the reference build
 
 These depend on the projects and hosting involved; treat them as patterns, not requirements.

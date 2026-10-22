@@ -337,7 +337,7 @@ describe('the gates on the recorded reports', () => {
 
   it('mutation: fails on the mutant the weak test left standing', () => {
     const io = fakeIo({ [join(ROOT, 'tmp-1', 'reports', 'mutation-report.json')]: MUTATION });
-    expect(mutationGate([PARITY], dotnetAdapter(options(), io))).toMatchObject({ pass: false, mutants: 3, standing: [{ file: PARITY, line: 7, mutator: 'Arithmetic mutation', status: 'Survived' }] });
+    expect(mutationGate([PARITY], dotnetAdapter(options(), io), () => undefined)).toMatchObject({ pass: false, mutants: 3, standing: [{ file: PARITY, line: 7, mutator: 'Arithmetic mutation', status: 'Survived' }] });
   });
 });
 

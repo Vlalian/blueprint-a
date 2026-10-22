@@ -7,6 +7,9 @@ const mutant = (status: string, line = 1, ignoreReason?: string): MutantReport =
 describe('timeoutOptions — Stryker timeouts from config, never hard-coded (ticket 31)', () => {
   it('passes the configured values on as numbers', () => {
     expect(timeoutOptions('9000', '2.5')).toEqual({ timeoutMS: 9000, timeoutFactor: 2.5 });
+    // Ticket 85: the dry run (Stryker's first whole-suite run) outgrew Stryker's 5-minute default.
+    expect(timeoutOptions(undefined, undefined, '20')).toStrictEqual({ dryRunTimeoutMinutes: 20 });
+    expect(() => timeoutOptions(undefined, undefined, '0')).toThrow('--dry-run-timeout-minutes must be a positive number, not "0"');
   });
 
   it("leaves an unset value to Stryker's own default", () => {
@@ -99,6 +102,11 @@ describe('machineReport — the run as data, for the self-gate summary and the c
       { name: 'checkField', file: 'src/view.ts', startLine: 12, endLine: 40, complexity: 11, coverage: 1, crap: 11 },
       { name: 'untested', file: 'src/view.ts', startLine: 52, endLine: 60, complexity: 4, coverage: 0.2, crap: 12.192 },
     ]);
+  });
+
+  it('lists the functions over the ceiling it is given (ticket 83)', () => {
+    const scores = [5, 4].map((crap) => ({ name: `f${crap}`, file: 'src/a.ts', startLine: 1, endLine: 2, complexity: 1, coverage: 1, crap }));
+    expect(machineReport(['src/a.ts'], scores, [], { verdict: 'escalate', failures: [], suppressed: 0 }, { count: 0, waitMs: 0 }, 4).overCeiling?.map((c) => c.name)).toEqual(['f5']);
   });
 
   it('gives a suppression with no reason an empty one', () => {

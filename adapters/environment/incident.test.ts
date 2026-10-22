@@ -92,6 +92,11 @@ function fixed(current: ErrorRate, before: ErrorRate): EnvironmentAdapter & { ro
 }
 
 describe('judgeRelease', () => {
+  it('alerts with the failure detail when rollback throws', () => {
+    const env = fixed({ errors: 50, requests: 100 }, { errors: 0, requests: 600 });
+    env.rollback = () => { throw new Error('kubectl refused rollback'); };
+    expect(judgeRelease(env, 'web', LIVE, NOW, [], ON)).toMatchObject({ action: 'alert', rule: 'rollback-failed', message: expect.stringContaining('kubectl refused rollback'), history: [] });
+  });
   it('rolls back once the cooldown has passed', () => {
     const env = fixed({ errors: 50, requests: 100 }, { errors: 0, requests: 600 });
     const past = [{ release: 'web', at: NOW - 24 * HOUR - 1 }];

@@ -1,12 +1,12 @@
 // The run as data (ticket 31): what `--json <path>` writes, for the self-gate summary and for the
 // cloud gate report a merge trusts (scripts/self-gate-core.ts), and what Stryker's timeouts cost.
-// Stryker's timeoutMS and timeoutFactor come from the self-gate's config (config/self-gate.json),
+// Stryker's timeoutMS, timeoutFactor and dryRunTimeoutMinutes (ticket 85) come from the self-gate's config (config/self-gate.json),
 // not from code, so the evaluation can tune them.
 
 import type { CrapScore } from './crap.ts';
 import { CONCLUSIVE_KILLS, CRAP_CEILING, killCount, type MutantReport, type Verdict } from './policy.ts';
 
-export type StrykerTimeouts = { timeoutMS?: number; timeoutFactor?: number };
+export type StrykerTimeouts = { timeoutMS?: number; timeoutFactor?: number; dryRunTimeoutMinutes?: number };
 export type TimeoutWait = { count: number; waitMs: number };
 
 /** Stryker's own defaults, which apply when none were configured. */
@@ -20,11 +20,14 @@ function positive(flag: string, value: string | undefined): number | undefined {
   return n;
 }
 
-/** Stryker's timeout options from --timeout-ms and --timeout-factor; an unset one keeps Stryker's default. */
-export function timeoutOptions(ms: string | undefined, factor: string | undefined): StrykerTimeouts {
-  const timeoutMS = positive('--timeout-ms', ms);
-  const timeoutFactor = positive('--timeout-factor', factor);
-  return { ...(timeoutMS === undefined ? {} : { timeoutMS }), ...(timeoutFactor === undefined ? {} : { timeoutFactor }) };
+/** Stryker's timeout options from --timeout-ms, --timeout-factor and --dry-run-timeout-minutes; an unset one keeps Stryker's default. */
+export function timeoutOptions(ms: string | undefined, factor: string | undefined, dryRunMinutes?: string): StrykerTimeouts {
+  const options: StrykerTimeouts = {
+    timeoutMS: positive('--timeout-ms', ms),
+    timeoutFactor: positive('--timeout-factor', factor),
+    dryRunTimeoutMinutes: positive('--dry-run-timeout-minutes', dryRunMinutes),
+  };
+  return Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined));
 }
 
 /** Stryker's dry-run line: `Ran N tests in X (net <ms> ms, overhead <ms> ms).` */
@@ -64,7 +67,7 @@ export type MachineReport = {
   mutationSkipped: boolean;
 };
 
-export function machineReport(files: string[], crap: CrapScore[], mutants: MutantReport[], verdict: Verdict, timeouts: TimeoutWait): MachineReport {
+export function machineReport(files: string[], crap: CrapScore[], mutants: MutantReport[], verdict: Verdict, timeouts: TimeoutWait, ceiling = CRAP_CEILING): MachineReport {
   const counted = mutants.filter((m) => m.status !== 'Ignored');
   return {
     verdict: verdict.verdict,
@@ -74,7 +77,7 @@ export function machineReport(files: string[], crap: CrapScore[], mutants: Mutan
     suppressions: mutants.filter((m) => m.status === 'Ignored').map(({ file, line, mutator, ignoreReason }) => ({ file, line, mutator, reason: ignoreReason ?? '' })),
     timeouts,
     highestCrap: Math.max(0, ...crap.map((c) => c.crap)),
-    overCeiling: crap.filter((c) => c.crap > CRAP_CEILING),
+    overCeiling: crap.filter((c) => c.crap > ceiling),
     mutationSkipped: verdict.mutationSkipped === true,
   };
 }

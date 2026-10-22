@@ -1,0 +1,1 @@
+{"type":"result","subtype":"success","is_error":false,"duration_ms":45000,"num_turns":4,"result":"Summary written to docs/evaluations/2026-10-04.md","total_cost_usd":0.2,"modelUsage":{"claude-sonnet-4-5":{"inputTokens":100000,"outputTokens":10000,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.2}}}

@@ -1,0 +1,12 @@
+{
+  "$comment": "Model price table for the function ledger (ticket 15c, scripts/prices-core.ts). USD per million tokens, per model family; a session's model is priced by the longest family name it contains. Read at every evaluation, never hard-coded. THE RATES BELOW ARE PLACEHOLDERS: no published price was cited when this table was written, so every USD figure computed from it is marked as placeholder on the report. Replace each rate with the provider's published price, set date to the day you read it, source to the page you read it on, and placeholder to false.",
+  "date": "2026-10-04",
+  "source": "PLACEHOLDER: no cited source; every rate is 1 USD per million tokens until replaced with a published price",
+  "placeholder": true,
+  "models": {
+    "opus": { "input": 1, "output": 1, "cacheRead": 1, "cacheWrite": 1 },
+    "sonnet": { "input": 1, "output": 1, "cacheRead": 1, "cacheWrite": 1 },
+    "haiku": { "input": 1, "output": 1, "cacheRead": 1, "cacheWrite": 1 },
+    "fable": { "input": 1, "output": 1, "cacheRead": 1, "cacheWrite": 1 }
+  }
+}

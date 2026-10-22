@@ -1,0 +1,25 @@
+function world(o: { files?: Record<string, string>; git?: Git; status?: (c: PrepCommand) => number | null; now?: string; tickets?: Record<string, string> } = {}) {
+  const files: Record<string, string> = { ...o.files };
+  for (const [name, text] of Object.entries(o.tickets ?? {})) files[join(ROOT, 'docs', 'tickets', name)] = text;
+  const ran: PrepCommand[] = [];
+  const out: string[] = [];
+  const err: string[] = [];
+  let clock = 0;
+  const io: TempoIo = {
+    root: ROOT,
+    git: o.git ?? (() => ({ status: 1, stdout: '' })),
+    run: (c) => {
+      ran.push(c);
+      clock += 2000;
+      return (o.status ?? (() => 0))(c);
+    },
+    read: (path) => files[path],
+    append: (path, text) => void (files[path] = (files[path] ?? '') + text),
+    exists: () => false,
+    list: (dir) => Object.keys(files).filter((p) => p.startsWith(`${dir}/`)).map((p) => p.slice(dir.length + 1)),
+    clock: () => clock,
+    now: () => o.now ?? '2026-10-05T12:00:00.000Z',
+    out: (text) => void out.push(text),
+    err: (text) => void err.push(text),
+  };
+  return { io, files, ran, out: () => out.join(''), err: () => err.join(''), records: () => parseObservations(files[LOG]) };

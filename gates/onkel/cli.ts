@@ -7,7 +7,7 @@ import { measureCognitive } from './cognitive.ts';
 import { measureComplexity } from './complexity.ts';
 import { scoreCrap, type FileCoverage } from './crap.ts';
 import { machineReport, timeoutLine, timeoutOptions, timeoutWait, type StrykerTimeouts } from './machine.ts';
-import { judge, skipsMutation, CRAP_CEILING, type MutantReport } from './policy.ts';
+import { crapCeilingOf, judge, skipsMutation, type MutantReport } from './policy.ts';
 import { coverageArgs, PROPERTY_TESTS } from './property-tests.ts';
 import { report } from './report.ts';
 import { key, selectFiles, unexplainedMissing } from './select.ts';
@@ -51,7 +51,7 @@ import {
  * way it treats a red check: stop that task, leave the work, report.
  */
 
-const CEILING_NOTE = `CRAP ceiling ${CRAP_CEILING} (a fully covered function scores its complexity)`;
+const ceilingNote = (ceiling: number) => `CRAP ceiling ${ceiling} (a fully covered function scores its complexity)`;
 
 // No shell on any platform: git is git.exe on Windows, and vitest and Stryker are started as
 // `node <entry>` (gates/lib/node-bin.ts). The shell this used on Windows, for npx.cmd, joined the
@@ -309,7 +309,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     return 0;
   }
 
-  console.log(`Grading ${files.length} file(s) — ${CEILING_NOTE}\n`);
+  console.log(`Grading ${files.length} file(s) — ${ceilingNote(crapCeilingOf(parseArgs(argv).crapCeiling))}\n`);
   return grade(files, argv);
 }
 
@@ -350,8 +350,9 @@ function writeMachine(path: string | undefined, data: ReturnType<typeof machineR
 
 /** Measure everything, then let the change decide what is judged. */
 function grade(files: string[], argv: string[]): number {
-  const { wholeFile, base, exempt, sandboxIgnore, incrementalFile, trust, coverage: coverageFile, json, timeoutMs, timeoutFactor } = parseArgs(argv);
-  const timeouts = timeoutOptions(timeoutMs, timeoutFactor);
+  const { wholeFile, base, exempt, sandboxIgnore, incrementalFile, trust, coverage: coverageFile, json, timeoutMs, timeoutFactor, dryRunTimeoutMinutes, crapCeiling } = parseArgs(argv);
+  const ceiling = crapCeilingOf(crapCeiling);
+  const timeouts = timeoutOptions(timeoutMs, timeoutFactor, dryRunTimeoutMinutes);
   // Read once, scored twice: both metrics parse the same text, and a second
   // read would let them disagree about a file edited mid-run.
   const graded = files.map((file) => ({
@@ -382,7 +383,7 @@ function grade(files: string[], argv: string[]): number {
     scope && widenToFunctions(scope, complexity.flat()),
   );
   const sourceOf = (file: string) => graded.find((g) => g.file === file)?.source;
-  const mutationSkipped = skipsMutation(crap);
+  const mutationSkipped = skipsMutation(crap, ceiling);
   const run = mutationRun(mutate, mutationSkipped, () => collectMutants(mutate, sandboxIgnore, incrementalFile, timeouts));
   const { log } = run;
   // code-health/33: judge each suppression on the reason its author wrote in the source.
@@ -398,6 +399,7 @@ function grade(files: string[], argv: string[]): number {
     missedFiles: strykerMissedFiles(mutate, log),
     mutationSkipped,
     broadDirectives: broadDirectives(graded, changed),
+    ceiling,
   });
   const exitCode = report(
     crap,
@@ -410,9 +412,10 @@ function grade(files: string[], argv: string[]): number {
       suppressionsOf(mutants, sourceOf),
       changed,
     ),
+    ceiling,
   );
   const waited = timeoutWait(mutants, log, timeouts);
   console.log(timeoutLine(waited));
-  writeMachine(json, machineReport(files, crap, mutants, verdict, waited));
+  writeMachine(json, machineReport(files, crap, mutants, verdict, waited, ceiling));
   return exitCode;
 }

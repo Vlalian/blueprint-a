@@ -33,7 +33,7 @@ export interface JsTsIo {
 
 /** The part of istanbul's per-file coverage this reads. */
 export interface FileCoverage {
-  statementMap: Record<string, { start: { line: number } }>;
+  statementMap: Record<string, { start: { line: number; column?: number } }>;
   /** Statement id to how many times it ran. */
   s: Record<string, number>;
 }
@@ -44,12 +44,15 @@ interface StrykerReport {
 
 const KARMA = "karma: run karma with karma-coverage's json reporter and pass its coverage-final.json with --coverage";
 
+/** A literal source path as a glob, with portable separators. */
+const literalGlob = (path: string) => path.replaceAll('\\', '/').replace(/[!*?{}()[\]]/g, '\\$&');
+
 /** The runner's arguments for one coverage run of the whole suite, as istanbul json in `dir`. */
 export function coverageArgs(runner: JsRunner, dir: string, paths: string[]): string[] {
   if (runner === 'vitest') {
-    return ['run', '--coverage.enabled', '--coverage.provider=v8', '--coverage.reporter=json', `--coverage.reportsDirectory=${dir}`, ...paths.map((p) => `--coverage.include=${p}`)];
+    return ['run', '--coverage.enabled', '--coverage.provider=v8', '--coverage.reporter=json', `--coverage.reportsDirectory=${dir}`, ...paths.map((p) => `--coverage.include=${literalGlob(p)}`)];
   }
-  if (runner === 'jest') return ['--ci', '--coverage', '--coverageReporters=json', `--coverageDirectory=${dir}`, ...paths.map((p) => `--collectCoverageFrom=${p}`)];
+  if (runner === 'jest') return ['--ci', '--coverage', '--coverageReporters=json', `--coverageDirectory=${dir}`, ...paths.map((p) => `--collectCoverageFrom=${literalGlob(p)}`)];
   throw new Error(KARMA);
 }
 
@@ -58,7 +61,7 @@ export function strykerConfig(runner: JsRunner, paths: string[], dir: string): R
   const perRunner = { vitest: {}, jest: { jest: { projectType: 'custom' } }, karma: { karma: { configFile: 'karma.conf.js' } } }[runner];
   return {
     testRunner: runner,
-    mutate: paths,
+    mutate: paths.map(literalGlob),
     coverageAnalysis: 'perTest',
     reporters: ['json'],
     jsonReporter: { fileName: join(dir, 'mutation.json') },
@@ -69,19 +72,21 @@ export function strykerConfig(runner: JsRunner, paths: string[], dir: string): R
 }
 
 /** Whether `inner` is another function inside `outer`'s lines. */
-const nestedIn = (inner: FunctionScore, outer: FunctionScore) => inner !== outer && inner.startLine >= outer.startLine && inner.endLine <= outer.endLine;
+const nestedIn = (inner: FunctionScore, outer: FunctionScore) => inner !== outer && within({ line: inner.startLine, column: inner.startColumn }, outer) && within({ line: inner.endLine, column: inner.endColumn }, outer);
 
-const within = (line: number, fn: FunctionScore) => line >= fn.startLine && line <= fn.endLine;
+const afterStart = (start: { line: number; column?: number }, fn: FunctionScore) => start.line > fn.startLine || (start.column ?? Infinity) >= (fn.startColumn ?? 0);
+const beforeEnd = (start: { line: number; column?: number }, fn: FunctionScore) => start.line < fn.endLine || (start.column ?? 0) <= (fn.endColumn ?? Infinity);
+const within = (start: { line: number; column?: number }, fn: FunctionScore) => start.line >= fn.startLine && start.line <= fn.endLine && afterStart(start, fn) && beforeEnd(start, fn);
 
 /** Each function's own lines (a nested function's are its own) and those a test ran; all from one file. */
 export function functionLines(functions: FunctionScore[], coverage: FileCoverage): FunctionLines[] {
   return functions.map((fn) => {
     const nested = functions.filter((other) => nestedIn(other, fn));
-    const own = Object.entries(coverage.statementMap).filter(([, { start }]) => within(start.line, fn) && !nested.some((n) => within(start.line, n)));
+    const own = Object.entries(coverage.statementMap).filter(([, { start }]) => within(start, fn) && !nested.some((n) => within(start, n)));
     const lines = new Set(own.map(([, { start }]) => start.line));
     const covered = new Set(own.filter(([id]) => (coverage.s[id] ?? 0) > 0).map(([, { start }]) => start.line));
-    const { name, file, startLine, endLine } = fn;
-    return { name, file, startLine, endLine, lines: lines.size, covered: covered.size };
+    const { complexity: _, ...ref } = fn;
+    return { ...ref, lines: lines.size, covered: covered.size };
   });
 }
 

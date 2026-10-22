@@ -15,6 +15,11 @@ describe('runResult', () => {
 });
 
 describe('shellRunner', () => {
+  it('keeps the real exit status when stdout exceeds one MiB', () => {
+    const r = shellRunner('node -e "process.stdout.write(String.fromCharCode(120).repeat(2 * 1024 * 1024)); process.exitCode = 3"', process.cwd());
+    expect(r.exitCode).toBe(3);
+    expect(r.output.length).toBe(2 * 1024 * 1024);
+  }, 60_000);
   it('runs a real command through the shell in the given directory', () => {
     const r = shellRunner('node -e "console.log(process.cwd().length > 0); process.exitCode = (2)"', process.cwd());
     expect(r).toEqual({ exitCode: 2, output: 'true\n' });

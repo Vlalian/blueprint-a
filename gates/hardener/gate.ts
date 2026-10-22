@@ -5,9 +5,9 @@
 // Exit 0 pass, 1 fail (onkel's escalate), 2 could not run.
 
 export interface HardenerIo {
-  /** `git diff --name-only` since base, deletions left out. */
+  /** `git diff --name-only -z` since base, deletions left out: NUL-separated, so a name git would quote arrives unchanged (ticket 77). */
   diffNames(base: string): string;
-  /** `git ls-files --others --exclude-standard`. */
+  /** `git ls-files -z --others --exclude-standard`, NUL-separated. */
   untracked(): string;
   /** Runs onkel with these arguments and returns its exit status (null when it was killed). */
   onkel(args: string[]): number | null;
@@ -40,7 +40,7 @@ const onkelFlags = (base: string, json: string | undefined) => ['--base', base, 
 
 /** The changed files onkel grades; on this repo, only those the self-gate grades. */
 function changedSources(base: string, io: HardenerIo): string[] {
-  const sources = gradedSources(`${io.diffNames(base)}\n${io.untracked()}`.split('\n'));
+  const sources = gradedSources(`${io.diffNames(base)}\0${io.untracked()}`.split('\0'));
   return io.self ? io.self.graded(sources) : sources;
 }
 

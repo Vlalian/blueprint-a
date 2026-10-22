@@ -17,9 +17,12 @@ export interface GitContext {
 /** A subcommand rule: its words, the context, and the git options before the subcommand. */
 type Rule = (args: string[], ctx: GitContext, globals: string[]) => string | undefined;
 
-const PROTECTED_BRANCHES = ['main', 'master'];
+// main, master and the night branches (`night/2026-10-04`): AGENTS.md rule 3, ticket 74.
+const PROTECTED_BRANCHES = new Set(['main', 'master']);
+const NIGHT = 'night/';
+const isProtectedBranch = (branch: string) => PROTECTED_BRANCHES.has(branch) || (branch.startsWith(NIGHT) && branch.length > NIGHT.length);
 // git reads a push destination `heads/main` as `refs/heads/main`, so both prefixes name the branch.
-const PROTECTED_REFS = new Set(PROTECTED_BRANCHES.flatMap((b) => [b, `heads/${b}`, `refs/heads/${b}`]));
+const isProtectedRef = (ref: string) => ['', 'heads/', 'refs/heads/'].some((prefix) => ref.startsWith(prefix) && isProtectedBranch(ref.slice(prefix.length)));
 const HOOK_RUNNING = new Set(['commit', 'merge', 'rebase', 'cherry-pick', 'am', 'push']);
 // git's global options that take the next word as their value (`git --git-dir x push`).
 const GLOBALS_WITH_VALUE = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--config-env', '--super-prefix', '--attr-source']);
@@ -35,7 +38,7 @@ const ALL_PATHS = new Set(['.', './', '..', '../', ':/', '*']);
 const PR_API = /\/pulls\/[^/]+\/merge|mergePullRequest|markPullRequestReadyForReview|enablePullRequestAutoMerge/i;
 
 /** git's global options before the subcommand, and where the subcommand starts. */
-function splitGlobals(args: string[]): { globals: string[]; rest: string[] } {
+export function splitGlobals(args: string[]): { globals: string[]; rest: string[] } {
   let i = 0;
   while (i < args.length && args[i]!.startsWith('-')) i += GLOBALS_WITH_VALUE.has(args[i]!) ? 2 : 1;
   return { globals: args.slice(0, i), rest: args.slice(i) };
@@ -47,6 +50,33 @@ const hasLong = (args: string[], option: string) => args.some((a) => a.length > 
 
 function configReason(words: string[]): string | undefined {
   return CONFIG_RULES.find(([pattern]) => words.some((w) => pattern.test(w)))?.[1];
+}
+
+const PUSH_CONFIG = /^(?:remote\..+\.(?:push|mirror|url|pushurl)|remote\.pushdefault|branch\..+\.(?:remote|pushremote|merge)|push\.default|url\..+\.(?:insteadof|pushinsteadof))(?:=|$)/i;
+const REMOTE_WRITES = new Set(['add', 'set-url', 'rename', 'remove', 'rm', 'set-branches', 'set-head']);
+const CONFIG_READS = new Set(['--get', '--get-all', 'get']);
+const CONFIG_SCOPES = new Set(['--local', '--global', '--system', '--worktree']);
+const CONFIG_SECTIONS = new Set(['--rename-section', '--remove-section', 'rename-section', 'remove-section']);
+const PUSH_SECTION = /^(?:remote\.|branch\.|url\.|push$)/i;
+
+/** Only known read-only scopes can be removed before recognising a read form. */
+function configRead(words: string[]): boolean {
+  const args = words.filter((word) => !CONFIG_SCOPES.has(word));
+  return args.length === 1 || (args.length === 2 && CONFIG_READS.has(args[0]!));
+}
+
+/** A section operation can move destination keys without naming any key. */
+function destinationSectionWrite(words: string[]): boolean {
+  return words.some((word) => CONFIG_SECTIONS.has(word)) && words.some((word) => PUSH_SECTION.test(word));
+}
+
+const configEditor = (words: string[]) => hasLong(words, '--edit') || hasShort(words, 'e') || words.includes('edit');
+
+function configCommandReason(words: string[]): string | undefined {
+  if (configEditor(words)) return 'editing git config is not allowed';
+  if (destinationSectionWrite(words)) return 'changing push-destination config is not allowed';
+  if (configRead(words)) return configReason(words);
+  return configReason(words) ?? (words.some((w) => PUSH_CONFIG.test(w)) ? 'changing push-destination config is not allowed' : undefined);
 }
 
 const isForcePush = (args: string[]) =>
@@ -133,8 +163,8 @@ function refspecDestinations(refspec: string, mapped: string[], branch: string):
   return to.length > 0 ? to : [destination(refspec, branch)];
 }
 
-/** The first destination that is main or master however spelled, or a wildcard (`refs/heads/*` matches main too). */
-const protectedTarget = (targets: string[]) => targets.find((r) => PROTECTED_REFS.has(r) || r.includes('*'));
+/** The first destination that is main, master or a night branch however spelled, or a wildcard (`refs/heads/*` matches main too). */
+const protectedTarget = (targets: string[]) => targets.find((r) => isProtectedRef(r) || r.includes('*'));
 
 /** Every ref the push updates: the refspecs' destinations, or with none what the config sends it to. */
 function destinations(mapped: string[], refs: string[], branch: string, config: (key: string) => string[]): string[] {
@@ -142,7 +172,7 @@ function destinations(mapped: string[], refs: string[], branch: string, config: 
 }
 
 function destinationReason(mapped: string[], refs: string[], branch: string, config: (key: string) => string[]): string | undefined {
-  if (refs.length === 0 && PROTECTED_BRANCHES.includes(branch)) return `push to ${branch} is not allowed; you are on ${branch}`;
+  if (refs.length === 0 && isProtectedBranch(branch)) return `push to ${branch} is not allowed; you are on ${branch}`;
   const target = protectedTarget(destinations(mapped, refs, branch, config));
   return target === undefined ? undefined : `push to ${target} is not allowed; push the ticket branch and open a draft PR`;
 }
@@ -191,10 +221,23 @@ function discardReason(args: string[]): string | undefined {
   return all || forced ? 'discarding all changes is not allowed' : undefined;
 }
 
+// What leaves a merge without making one: the only merge an agent may run on a protected branch.
+const MERGE_UNDO = new Set(['--abort', '--quit']);
+
+/** Ticket 74: a merge or pull into main, master or night is the owner' call, made through flow:merge. */
+function mergeReason(args: string[], ctx: GitContext): string | undefined {
+  const branch = ctx.currentBranch;
+  const undoes = args.length === 1 && MERGE_UNDO.has(args[0]!);
+  return isProtectedBranch(branch) && !undoes ? `merging into ${branch} needs the owner' consent; it goes through npm run flow:merge` : undefined;
+}
+
 // A Map, not an object literal: `git constructor` must not find Object's own keys.
 const SUBCOMMAND_RULES = new Map<string, Rule>([
   ['push', pushReason],
-  ['config', configReason],
+  ['merge', mergeReason],
+  ['pull', mergeReason],
+  ['config', configCommandReason],
+  ['remote', (args) => REMOTE_WRITES.has(args.find((word) => !word.startsWith('-'))!) ? 'changing push-destination config is not allowed' : undefined],
   ['reset', (args) => (hasLong(args, '--hard') ? 'reset --hard is not allowed; it destroys work' : undefined)],
   ['clean', (args) => (hasShort(args, 'f') || hasLong(args, '--force') ? 'clean -f is not allowed; it deletes untracked work' : undefined)],
   ['branch', branchReason],

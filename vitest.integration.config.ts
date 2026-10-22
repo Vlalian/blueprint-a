@@ -4,7 +4,7 @@ import { defineConfig } from 'vitest/config';
 // `npm run test:integration`.
 export default defineConfig({
   test: {
-    include: ['{gates,adapters}/**/*.integration.test.ts'],
+    include: ['{gates,adapters,runner,flow}/**/*.integration.test.ts'],
     exclude: ['**/node_modules/**', '**/fixtures/**'],
     testTimeout: 10 * 60 * 1000,
     hookTimeout: 5 * 60 * 1000,

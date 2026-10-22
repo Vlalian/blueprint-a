@@ -1,0 +1,9 @@
+{
+  "$comment": "The runner's settings for this package itself (docs/12-runner.md lists every field and its default): what its self-gate grades (the flow tools too), the folders the test selection walks, and the process shells exempt from mutation.",
+  "integrationBranch": "main",
+  "sourceDirs": ["gates", "adapters", "runner", "flow"],
+  "graphDirs": ["gates", "adapters", "runner", "flow", "test"],
+  "exempt": ["gates/onkel/cli.ts", "gates/onkel/run.ts", "gates/four-checks/cli.ts", "gates/four-checks/runner.ts", "runner/self-gate.ts"],
+  "sandboxIgnore": ["state", "/fixtures/*", "!/fixtures/azure-devops", "!/fixtures/kubernetes", "!/fixtures/sonarqube", "docs"],
+  "checks": { "typecheck": "npm run typecheck", "test": "npm test" }
+}

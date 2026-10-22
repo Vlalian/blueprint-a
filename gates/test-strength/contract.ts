@@ -10,6 +10,8 @@ export interface FunctionRef {
   name: string;
   startLine: number;
   endLine: number;
+  startColumn?: number;
+  endColumn?: number;
 }
 
 /** coverage(): how many of a function's own lines exist and how many the tests ran. */

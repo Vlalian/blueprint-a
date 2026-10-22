@@ -19,4 +19,4 @@ export function runResult(r: SpawnFacts): { exitCode: number; output: string } {
 /** A check through the shell in `cwd`, with `env` added to this process's environment (the worktree's env file, ticket 34). */
 export const shellRunner = (command: string, cwd: string, env: Record<string, string> = {}): ReturnType<EnvRunner> =>
   // Stryker disable next-line StringLiteral: equivalent; without an encoding spawnSync returns Buffers, which runResult's template literal decodes as UTF-8, the same text
-  runResult(spawnSync(command, { cwd, shell: true, encoding: 'utf8', timeout: TEN_MINUTES, env: { ...process.env, ...env } }));
+  runResult(spawnSync(command, { cwd, shell: true, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: TEN_MINUTES, env: { ...process.env, ...env } })); // nosemgrep: spawn-shell-true, detect-child-process -- runs the project's configured check command, a shell string by design (the owner, 2026-10-21)

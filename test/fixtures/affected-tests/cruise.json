@@ -1,0 +1,233 @@
+{
+ "modules": [
+  {
+   "source": "gates/deep.test.ts",
+   "dependencies": [
+    {
+     "module": "./deep.ts",
+     "resolved": "gates/deep.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "gates/deep.ts",
+   "dependencies": []
+  },
+  {
+   "source": "gates/leaf.test.ts",
+   "dependencies": [
+    {
+     "module": "./leaf.ts",
+     "resolved": "gates/leaf.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "gates/leaf.ts",
+   "dependencies": []
+  },
+  {
+   "source": "gates/low.test.ts",
+   "dependencies": [
+    {
+     "module": "./low.ts",
+     "resolved": "gates/low.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "gates/low.ts",
+   "dependencies": [
+    {
+     "module": "./deep.ts",
+     "resolved": "gates/deep.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "gates/mid.test.ts",
+   "dependencies": [
+    {
+     "module": "./mid.ts",
+     "resolved": "gates/mid.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "gates/mid.ts",
+   "dependencies": [
+    {
+     "module": "./low.ts",
+     "resolved": "gates/low.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "gates/other.test.ts",
+   "dependencies": [
+    {
+     "module": "./other.ts",
+     "resolved": "gates/other.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "gates/other.ts",
+   "dependencies": [
+    {
+     "module": "./types.ts",
+     "resolved": "gates/types.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+     ]
+    },
+    {
+     "module": "fs",
+     "resolved": "fs",
+     "coreModule": true,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "core",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "fs",
+   "dependencies": []
+  },
+  {
+   "source": "gates/types.ts",
+   "dependencies": []
+  },
+  {
+   "source": "gates/top.test.ts",
+   "dependencies": [
+    {
+     "module": "./top.ts",
+     "resolved": "gates/top.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "gates/top.ts",
+   "dependencies": [
+    {
+     "module": "./mid.ts",
+     "resolved": "gates/mid.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "scripts/cli.integration.test.ts",
+   "dependencies": [
+    {
+     "module": "child_process",
+     "resolved": "child_process",
+     "coreModule": true,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "core",
+      "import"
+     ]
+    },
+    {
+     "module": "path",
+     "resolved": "path",
+     "coreModule": true,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "core",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "child_process",
+   "dependencies": []
+  },
+  {
+   "source": "path",
+   "dependencies": []
+  },
+  {
+   "source": "scripts/cli.ts",
+   "dependencies": [
+    {
+     "module": "../gates/top.ts",
+     "resolved": "gates/top.ts",
+     "coreModule": false,
+     "couldNotResolve": false,
+     "dependencyTypes": [
+      "local",
+      "import"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "test/helpers/help.ts",
+   "dependencies": []
+  }
+ ]
+}

@@ -10,7 +10,7 @@ function fakeIo(changed: string[], exits: Record<string, number>) {
       return { dir: '/tree', remove: () => log.push('remove') };
     },
     copyInto: (dir, file) => log.push(`copy ${file} -> ${dir}`),
-    runTest: (dir, file) => (log.push(`run ${file} in ${dir}`), exits[file] ?? 0),
+    runTest: (dir, file) => (log.push(`run ${file} in ${dir}`), { exitCode: exits[file] ?? 0, failedTest: true }),
   };
   return { io, log };
 }

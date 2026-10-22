@@ -1,5 +1,6 @@
 // The GitHub host adapter (ticket 54): the host calls through the gh CLI. CI on one exact commit is
-// read from GitHub's check runs (Actions and other apps) and commit statuses (older integrations);
+// read from GitHub's check runs (Actions and other apps) and commit statuses (older integrations),
+// every page of both (tickets 63, 77);
 // a PR is opened as a draft or the open one reused; issues stand in for work items. gh is passed
 // in, so tests use a fake; scripts/ship-io.ts wires in the real one.
 
@@ -11,7 +12,7 @@ export { isFullSha } from './host.ts';
 
 export type Gh = (args: string[]) => ProcessResult;
 
-type CheckRuns = { total_count?: number; check_runs: Array<{ name: string; status: string; conclusion: string | null }> };
+type CheckRuns = { check_runs: Array<{ name: string; status: string; conclusion: string | null }> };
 type Statuses = { statuses: Array<{ context: string; state: string }> };
 
 const PASSING_CONCLUSIONS = new Set(['success', 'neutral', 'skipped']);
@@ -26,35 +27,31 @@ export function readCi(sha: string, runs: CheckRuns, statuses: Statuses): CiSnap
   return snapshotOf(sha, [...runs.check_runs.map((r) => [r.name, runVerdict(r)] as const), ...statuses.statuses.map((s) => [s.context, statusVerdict(s)] as const)]);
 }
 
-const PER_PAGE = 100;
-
-/** The two gh calls: a page of check runs and the combined commit statuses of that commit ({owner}/{repo} is filled in by gh). */
-export function ciQueries(sha: string, page = 1): [string[], string[]] {
-  const api = (path: string) => ['api', '-X', 'GET', `repos/{owner}/{repo}/commits/${sha}/${path}`, '-f', `per_page=${PER_PAGE}`];
-  return [[...api('check-runs'), '-f', `page=${page}`], api('status')];
-}
-
-const ghJson = <T>(gh: Gh, args: string[]) => JSON.parse(ghOutput(gh(args), 'gh api')) as T;
+/** One page of the commit's check runs or combined statuses, 100 to a page ({owner}/{repo} is filled in by gh). */
+export const ciQuery = (sha: string, path: 'check-runs' | 'status', page: number) => ['api', '-X', 'GET', `repos/{owner}/{repo}/commits/${sha}/${path}`, '-f', 'per_page=100', '-f', `page=${page}`];
 
 /**
- * Every check run on the commit, page by page until a page that is not full. GitHub pages them 100
- * at a time, so one page could miss a failing run; a total_count above what the pages held throws,
- * never reads green. (GitHub already gives the latest run per name.)
+ * Every entry of the commit's check runs or statuses, page by page until the total GitHub names
+ * (tickets 63, 77); throws when a page lacks the total or the list, or an empty page ends the list
+ * short of it, so a part of CI is never read as all of it.
  */
-function allCheckRuns(sha: string, gh: Gh): CheckRuns {
-  const check_runs: CheckRuns['check_runs'] = [];
-  let page: CheckRuns;
-  do {
-    page = ghJson<CheckRuns>(gh, ciQueries(sha, check_runs.length / PER_PAGE + 1)[0]);
-    check_runs.push(...page.check_runs);
-  } while (page.check_runs.length === PER_PAGE);
-  if ((page.total_count ?? 0) > check_runs.length) throw new Error(`GitHub counts ${page.total_count} check runs on ${sha}; its pages held ${check_runs.length}`);
-  return { check_runs };
+function allPages<T>(sha: string, path: 'check-runs' | 'status', key: string, gh: Gh): T[] {
+  const items: T[] = [];
+  for (let page = 1; ; page++) {
+    const body = JSON.parse(ghOutput(gh(ciQuery(sha, path, page)), 'gh api')) as Record<string, unknown>;
+    const [total, list] = [body.total_count, body[key]];
+    if (typeof total !== 'number' || !Array.isArray(list)) throw new Error(`gh api ${path}: page ${page} has no total_count and ${key} list`);
+    items.push(...(list as T[]));
+    if (items.length >= total) return items;
+    if (list.length === 0) throw new Error(`gh api ${path}: page ${page} ended the list at ${items.length} of ${total}, so CI on the commit cannot be read whole`);
+  }
 }
 
 export function queryCi(sha: string, gh: Gh): CiSnapshot {
   needFullSha(sha);
-  return readCi(sha, allCheckRuns(sha, gh), ghJson<Statuses>(gh, ciQueries(sha)[1]));
+  const runs = allPages<CheckRuns['check_runs'][number]>(sha, 'check-runs', 'check_runs', gh);
+  const statuses = allPages<Statuses['statuses'][number]>(sha, 'status', 'statuses', gh);
+  return readCi(sha, { check_runs: runs }, { statuses });
 }
 
 const call = (gh: Gh, args: string[]) => ghOutput(gh(args), `gh ${args[0]} ${args[1]}`);
