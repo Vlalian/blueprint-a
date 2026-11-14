@@ -6,7 +6,7 @@ import { coverageArgs } from '../gates/onkel/property-tests.ts';
 import { DEFAULTS } from './runner-config.ts';
 
 /** Every stage a self-gate run can have; each is logged as the gate `self-gate-<stage>` (ticket 31). */
-export const SELF_GATE_STAGES = ['typecheck', 'unit', 'property', 'integration', 'locks', 'sast', 'onkel'] as const;
+export const SELF_GATE_STAGES = ['typecheck', 'unit', 'property', 'integration', 'canary', 'sast', 'onkel'] as const;
 export type Stage = (typeof SELF_GATE_STAGES)[number];
 
 export type Step = { id: Stage; name: string; command: string; args: string[] };
@@ -60,7 +60,8 @@ export function checkSteps(root: string, o: StepOptions): Step[] {
     step('typecheck', 'typecheck', binCommand(root, 'tsc', ['--noEmit'])),
     ...unitStep(root, o),
     ...(o.integration ? integrationStep(root, o) : []),
-    { id: 'locks', name: 'locked files', command: process.execPath, args: [join(root, 'gates', 'locks', 'cli.ts'), ...(o.merge === undefined ? [] : ['--branch', o.merge])] },
+    // Ticket 95: every gate's prove-it-bites test still bites.
+    { id: 'canary', name: 'canary (every gate still bites)', command: process.execPath, args: [join(root, 'gates', 'canary', 'cli.ts')] },
   ];
 }
 

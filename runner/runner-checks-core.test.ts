@@ -1,6 +1,5 @@
 import { join, posix } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseObservations } from './observations.ts';
 import { runnerChecks, type RunnerChecksIo } from './runner-checks-core.ts';
 
 const ROOT = join('/repo');
@@ -11,7 +10,6 @@ function fake(opts: { tree?: string | undefined; config?: object; env?: string; 
   const files = new Map<string, string>([[join(ROOT, 'config', 'runner.json'), JSON.stringify(opts.config ?? CONFIG)]]);
   if (opts.env !== undefined) files.set(join(ROOT, '.env.ci'), opts.env);
   const ran: { command: string; env: Record<string, string> }[] = [];
-  const appended: [string, string][] = [];
   let t = 0;
   const io: RunnerChecksIo = {
     root: ROOT,
@@ -21,10 +19,8 @@ function fake(opts: { tree?: string | undefined; config?: object; env?: string; 
     write: (path, text) => void files.set(path, text),
     tree: () => ('tree' in opts ? opts.tree : 'tree1'),
     ms: () => (t += 500),
-    append: (path, text) => void appended.push([path, text]),
-    now: () => '2026-10-21T08:00:00.000Z',
   };
-  return { io, files, ran, appended, records: () => parseObservations(appended.map(([, text]) => text).join('')) };
+  return { io, files, ran };
 }
 
 const ENV = { WORKFLOW_STATE_DIR: join('/state') };
@@ -88,33 +84,6 @@ describe('runnerChecks — the configured checks, with the check-tree cache (tic
     runnerChecks([], {}, g.io);
     expect(g.ran).toEqual([{ command: 'x', env: {} }]);
     expect([...g.files.keys()]).toContain(posix.join(join(ROOT, 'runs', 'check-cache', 'shop'), 'tree1.json'));
-    expect(g.appended[0][0]).toBe(join(ROOT, 'runs', 'logs', 'observations.jsonl'));
-  });
-
-  it('logs each check with its source, its ms and the ms a cached one saved', () => {
-    const g = fake();
-    runnerChecks(['--only', 'lint'], ENV, g.io);
-    runnerChecks(['--only', 'lint'], ENV, g.io);
-    expect(g.appended.map(([path]) => path)).toEqual([join('/state', 'logs', 'observations.jsonl'), join('/state', 'logs', 'observations.jsonl')]);
-    expect(g.records()).toEqual([
-      { at: '2026-10-21T08:00:00.000Z', run: '', project: '', ticket: '', role: '', kind: 'gate', gate: 'lint', sha: 'tree1', verdict: 'pass', reasons: [], ms: 500, source: 'ran' },
-      { at: '2026-10-21T08:00:00.000Z', run: '', project: '', ticket: '', role: '', kind: 'gate', gate: 'lint', sha: 'tree1', verdict: 'pass', reasons: [], ms: 0, source: 'cached', savedMs: 500 },
-    ]);
-  });
-
-  it('appends one JSON line per check, nothing between them', () => {
-    const g = fake();
-    runnerChecks([], ENV, g.io);
-    const lines = g.appended[0][1].split('\n');
-    expect(lines).toHaveLength(3);
-    expect(lines[2]).toBe('');
-    expect(lines.slice(0, 2).map((l) => JSON.parse(l).gate)).toEqual(['lint', 'test']);
-  });
-
-  it('logs a failing check as failed, with no tree as an empty sha', () => {
-    const g = fake({ failing: ['x'], tree: undefined, config: { checks: { lint: 'x' } } });
-    runnerChecks([], ENV, g.io);
-    expect(g.records()[0]).toMatchObject({ verdict: 'fail', sha: '' });
   });
 
   it('refuses a check name the config does not have, and a run with no checks', () => {

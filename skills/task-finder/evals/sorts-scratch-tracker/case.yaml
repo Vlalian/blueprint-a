@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: sorts-scratch-tracker
+expected_outcome: |
+  Buildable: 02-cart-badge (blocker 01 is done) and 06-empty-cart-message. Needs you: 03 (Stripe account, a
+  human gate), 04 (grilling, a decision), 05 (blocked by 03, not done), and the map gap "order history page".
+  01 is done and not listed as a task. The cork is the Stripe account (03), which also unblocks 05.
+context:
+  scaffold_script: place-files.sh

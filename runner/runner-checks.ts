@@ -6,7 +6,7 @@
 // git, the shell, the files and the clock.
 // @process-shell
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname } from 'node:path';
 import { emit, failClosed } from '../gates/lib/contract.ts';
 import { shellRunner } from '../gates/four-checks/runner.ts';
@@ -25,10 +25,8 @@ emit(
       run: shellRunner,
       read: (path) => (existsSync(path) ? readFileSync(path, 'utf8') : undefined),
       write: (path, text) => (inFolder(path), writeFileSync(path, text)),
-      append: (path, text) => (inFolder(path), appendFileSync(path, text)),
       tree: worktreeTree,
       ms: () => performance.now(),
-      now: () => new Date().toISOString(),
     }),
   ),
 );

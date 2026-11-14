@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS } from './runner-config.ts';
-import { changedPaths, gradableFiles, onkelArgs, selfOnkelFlags, slowestTestFiles, slowLines, stageObservations, timeoutArgs } from './self-gate-core.ts';
+import { changedPaths, gradableFiles, onkelArgs, selfOnkelFlags, slowestTestFiles, slowLines, timeoutArgs } from './self-gate-core.ts';
 
 const always = () => true;
 const DIRS = ['gates', 'adapters', 'dispatcher', 'briefing', 'scripts', 'watchers'];
@@ -116,20 +116,3 @@ describe('slowLines', () => {
   });
 });
 
-describe('stageObservations — one gate observation per stage, so the evaluation sees gate cost', () => {
-  const base = { at: 'T', run: 'r', project: 'workflow', ticket: '31', role: 'coder' };
-  const slowest = [{ file: 'a.test.ts', ms: 9 }];
-
-  it('records each stage as gate self-gate-<stage> with its verdict and ms; the unit stage carries the slowest test files', () => {
-    const results = [
-      { id: 'typecheck' as const, status: 0 as const, ms: 10 },
-      { id: 'unit' as const, status: 1 as const, ms: 20 },
-      { id: 'onkel' as const, status: 2 as const, ms: 30 },
-    ];
-    expect(stageObservations(base, 'abc', results, slowest)).toEqual([
-      { ...base, kind: 'gate', gate: 'self-gate-typecheck', sha: 'abc', verdict: 'pass', reasons: [], ms: 10 },
-      { ...base, kind: 'gate', gate: 'self-gate-unit', sha: 'abc', verdict: 'fail', reasons: [], ms: 20, slowest },
-      { ...base, kind: 'gate', gate: 'self-gate-onkel', sha: 'abc', verdict: 'could-not-run', reasons: [], ms: 30 },
-    ]);
-  });
-});

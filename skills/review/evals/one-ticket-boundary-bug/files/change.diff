@@ -1,0 +1,25 @@
+diff --git a/src/discount.ts b/src/discount.ts
+new file mode 100644
+--- /dev/null
++++ b/src/discount.ts
+@@ -0,0 +1,6 @@
++// Applies the discount.
++export function priceAfterDiscount(total: number): number {
++  const threshold = 100
++  if (total > threshold) return total * 0.9;
++  return total;
++}
+diff --git a/src/discount.test.ts b/src/discount.test.ts
+new file mode 100644
+--- /dev/null
++++ b/src/discount.test.ts
+@@ -0,0 +1,9 @@
++import { expect, it } from 'vitest';
++import { priceAfterDiscount } from './discount';
++
++it('takes 10 percent off a big cart', () => {
++  expect(priceAfterDiscount(200)).toBe(180);
++});
++it('charges a small cart in full', () => {
++  expect(priceAfterDiscount(50)).toBe(50);
++});

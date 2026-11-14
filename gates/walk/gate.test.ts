@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { flagsOf, gateOptions, playwrightArgs, specRun, walkGate, type WalkGateIo, type WalkGateOptions } from './gate.ts';
+import { describe, expect, it } from 'vitest';
+import { flagsOf, gateOptions, walkGate, type WalkGateIo, type WalkGateOptions } from './gate.ts';
 
 const DIR = '.walk/sv-50';
 const HEAD = 'a'.repeat(40);
@@ -24,23 +24,21 @@ const REPORT = {
   extras: { console: [{ text: 'Warning: key' }], pageErrors: [], network5xx: [{ url: '/api/x', status: 502 }], axe: [{ rule: 'color-contrast', impact: 'serious', target: 'button' }] },
 };
 
-const OPTS: WalkGateOptions = { report: `${DIR}/report.json`, head: HEAD, patchId: PATCH, specs: ['tests/walk/sv-50.spec.ts'], expect: { criteria: ['AC1'], qa: ['QA2'], notRun: ['QA1'] }, quarantined: [] };
+const OPTS: WalkGateOptions = { report: `${DIR}/report.json`, head: HEAD, patchId: PATCH, expect: { criteria: ['AC1'], qa: ['QA2'], notRun: ['QA1'] }, quarantined: [] };
 
-function io(report: unknown = REPORT, specs = { passed: true, output: '1 passed' }) {
-  const ran: string[][] = [];
+function io(report: unknown = REPORT) {
   const gateIo: WalkGateIo = {
     read: () => JSON.stringify(report),
     exists: (p) => FILES.includes(p),
-    runSpecs: (s) => (ran.push(s), specs),
   };
-  return { gateIo, ran };
+  return { gateIo };
 }
 
 const items = (over: Record<string, object>) => REPORT.items.map((it) => ({ ...it, ...(over[it.id] ?? {}) }));
 
 describe('walkGate', () => {
-  it('passes a cited report bound to the current head whose pinned spec re-runs green, with its flags', () => {
-    const { gateIo, ran } = io();
+  it('passes a cited report bound to the current head, with its flags', () => {
+    const { gateIo } = io();
     expect(walkGate(OPTS, gateIo)).toEqual({
       gate: 'walk',
       pass: true,
@@ -53,26 +51,16 @@ describe('walkGate', () => {
         'axe color-contrast (serious): button',
       ],
     });
-    expect(ran).toEqual([['tests/walk/sv-50.spec.ts']]);
   });
 
-  it('fails, without running the specs, a report the evidence gate refuses', () => {
-    const { gateIo, ran } = io({ ...REPORT, items: items({ AC1: { evidence: [] } }) });
+  it('fails a report the evidence gate refuses', () => {
+    const { gateIo } = io({ ...REPORT, items: items({ AC1: { evidence: [] } }) });
     expect(walkGate(OPTS, gateIo)).toEqual({ gate: 'walk', pass: false, report: OPTS.report, problems: ['item AC1 (pass) cites no video timestamp or screenshot'], flags: [] });
-    expect(ran).toEqual([]);
   });
 
-  it('fails a broken pinned spec, quoting the end of its output', () => {
-    const { gateIo } = io(REPORT, { passed: false, output: `${'x'.repeat(2000)}\n1 failed: heading "Settings" not visible` });
-    const r = walkGate(OPTS, gateIo);
-    expect(r.pass).toBe(false);
-    expect(r.problems).toEqual([`the pinned specs failed after 2 retries: ${`${'x'.repeat(2000)}\n1 failed: heading "Settings" not visible`.slice(-1500)}`]);
-  });
-
-  it('fails when there is no pinned spec to run', () => {
-    const { gateIo, ran } = io();
-    expect(walkGate({ ...OPTS, specs: [] }, gateIo).problems).toEqual(['no pinned spec to run: the walk is not pinned']);
-    expect(ran).toEqual([]);
+  it('fails a criterion the walk saw fail', () => {
+    const { gateIo } = io({ ...REPORT, items: items({ AC1: { status: 'fail', observed: 'It says 24.' } }) });
+    expect(walkGate(OPTS, gateIo)).toMatchObject({ pass: false, problems: ['AC1 failed: It says 24.'] });
   });
 
   it('fails an exploratory fail', () => {
@@ -124,7 +112,7 @@ describe('walkGate', () => {
   });
 
   it('throws a usage error without a report', () => {
-    expect(() => walkGate({ ...OPTS, report: '' }, io().gateIo)).toThrow('usage: walk --report <report.json> --head <sha> --patch-id <id> --spec <file>... [--criterion <id>]... [--qa <id>]... [--not-run <id>]... [--repo <dir>]');
+    expect(() => walkGate({ ...OPTS, report: '' }, io().gateIo)).toThrow('usage: walk --report <report.json> --head <sha> --patch-id <id> [--criterion <id>]... [--qa <id>]... [--not-run <id>]... [--repo <dir>]');
   });
 });
 
@@ -135,31 +123,14 @@ describe('flagsOf', () => {
   });
 });
 
-describe('playwrightArgs', () => {
-  let args: string[] = [];
-  beforeEach(() => {
-    args = playwrightArgs('C:/app/node_modules/@playwright/test/cli.js', ['tests/walk/a.spec.ts', 'tests/walk/b.spec.ts']);
-  });
-
-  it("runs the app's own runner on the specs with 2 retries and a trace on the first retry", () => {
-    expect(args).toEqual(['C:/app/node_modules/@playwright/test/cli.js', 'test', 'tests/walk/a.spec.ts', 'tests/walk/b.spec.ts', '--retries=2', '--trace=on-first-retry', '--reporter=line']);
-  });
-});
-
-describe('gateOptions and specRun: the CLI wiring', () => {
+describe('gateOptions: the CLI wiring', () => {
   it('maps the arguments, quarantines as id=issue', () => {
     expect(
-      gateOptions({ report: 'r.json', head: 'h', 'patch-id': 'p', spec: ['a.spec.ts'], criterion: ['AC1'], qa: ['QA2'], 'not-run': ['QA1'], quarantined: ['QA7=https://x/issues/1?a=b'] }),
-    ).toEqual({ report: 'r.json', head: 'h', patchId: 'p', specs: ['a.spec.ts'], expect: { criteria: ['AC1'], qa: ['QA2'], notRun: ['QA1'] }, quarantined: [{ id: 'QA7', issue: 'https://x/issues/1?a=b' }] });
+      gateOptions({ report: 'r.json', head: 'h', 'patch-id': 'p', criterion: ['AC1'], qa: ['QA2'], 'not-run': ['QA1'], quarantined: ['QA7=https://x/issues/1?a=b'] }),
+    ).toEqual({ report: 'r.json', head: 'h', patchId: 'p', expect: { criteria: ['AC1'], qa: ['QA2'], notRun: ['QA1'] }, quarantined: [{ id: 'QA7', issue: 'https://x/issues/1?a=b' }] });
   });
 
   it('leaves what is not given empty', () => {
-    expect(gateOptions({})).toEqual({ report: '', head: '', patchId: '', specs: [], expect: { criteria: [], qa: [], notRun: [] }, quarantined: [] });
-  });
-
-  it('reads a run as passed on exit 0 only, with all its output', () => {
-    expect(specRun({ status: 0, stdout: 'a', stderr: 'b' })).toEqual({ passed: true, output: 'ab' });
-    expect(specRun({ status: 1, stdout: '', stderr: 'x' })).toEqual({ passed: false, output: 'x' });
-    expect(specRun({ status: null, stdout: '', stderr: '' }).passed).toBe(false);
+    expect(gateOptions({})).toEqual({ report: '', head: '', patchId: '', expect: { criteria: [], qa: [], notRun: [] }, quarantined: [] });
   });
 });

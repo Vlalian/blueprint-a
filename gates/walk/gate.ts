@@ -4,11 +4,12 @@
 // - the report is bound to the head and patch-id being judged (a rebase means a new walk);
 // - every expected item is in it, and no acceptance criterion is left not-run (quarantine may
 //   never drop one);
-// - no exploratory item failed;
-// - the pinned specs re-run green in the app's own Playwright, with 2 retries (ECC).
+// - no item failed.
+// The replay of pinned Playwright specs went in ticket 95: the walker's video and screenshots are the
+// evidence, and this gate checks its report.
 // A flag never fails it: flag items, console and page errors, 5xx responses and axe findings
 // ("necessary, not sufficient") go to the owner on the briefing, as do quarantined specs with their
-// issue. cli.ts wires in the files and the Playwright runner.
+// issue. cli.ts wires in the files.
 
 import { walkEvidenceGate, type EvidenceIo } from '../evidence/gate.ts';
 import type { WalkReport } from '../evidence/walk-report.ts';
@@ -18,22 +19,14 @@ export interface WalkGateOptions {
   report: string;
   head: string;
   patchId: string;
-  /** The pinned specs to run: the walk's own and every QA entry's that is not quarantined. */
-  specs: string[];
   /** The item ids the walk had to report: the ticket's criteria, the QA entries it ran and those it did not. */
   expect: { criteria: string[]; qa: string[]; notRun: string[] };
   quarantined: { id: string; issue: string }[];
 }
 
-export interface WalkGateIo extends EvidenceIo {
-  /** The app's Playwright on the specs, with retries; whether they passed and its output. */
-  runSpecs(specs: string[]): { passed: boolean; output: string };
-}
+export type WalkGateIo = EvidenceIo;
 
 export type WalkGateResult = GateResult & { problems: string[]; flags: string[] };
-
-/** The pinned specs' run: the app's own runner, 2 retries, a trace on the first retry. */
-export const playwrightArgs = (cli: string, specs: string[]) => [cli, 'test', ...specs, '--retries=2', '--trace=on-first-retry', '--reporter=line'];
 
 const short = (s: string) => s.slice(0, 10);
 
@@ -75,18 +68,12 @@ function coverageProblems(r: WalkReport, o: WalkGateOptions): string[] {
 
 const failures = (r: WalkReport) => r.items.filter((it) => it.status === 'fail').map((it) => `${it.id} failed: ${it.observed}`);
 
-function specProblems(o: WalkGateOptions, io: WalkGateIo): string[] {
-  if (o.specs.length === 0) return ['no pinned spec to run: the walk is not pinned'];
-  const run = io.runSpecs(o.specs);
-  return run.passed ? [] : [`the pinned specs failed after 2 retries: ${run.output.slice(-1500)}`];
-}
-
 export function walkGate(o: WalkGateOptions, io: WalkGateIo): WalkGateResult {
-  if (!o.report) throw new Error('usage: walk --report <report.json> --head <sha> --patch-id <id> --spec <file>... [--criterion <id>]... [--qa <id>]... [--not-run <id>]... [--repo <dir>]');
+  if (!o.report) throw new Error('usage: walk --report <report.json> --head <sha> --patch-id <id> [--criterion <id>]... [--qa <id>]... [--not-run <id>]... [--repo <dir>]');
   const evidence = walkEvidenceGate({ walk: o.report }, io);
   if (!evidence.pass) return { gate: 'walk', pass: false, report: o.report, problems: evidence.problems, flags: [] };
   const r = JSON.parse(io.read(o.report)) as WalkReport;
-  const problems = [...bindingProblems(r, o), ...coverageProblems(r, o), ...failures(r), ...specProblems(o, io)];
+  const problems = [...bindingProblems(r, o), ...coverageProblems(r, o), ...failures(r)];
   const flags = [...flagsOf(r), ...o.quarantined.map((q) => `${q.id} is quarantined: ${q.issue}`)];
   return { gate: 'walk', pass: problems.length === 0, report: o.report, problems, flags };
 }
@@ -98,11 +85,7 @@ export function gateOptions(v: Record<string, string | string[] | undefined>): W
     report: (v.report ?? '') as string,
     head: (v.head ?? '') as string,
     patchId: (v['patch-id'] ?? '') as string,
-    specs: many('spec'),
     expect: { criteria: many('criterion'), qa: many('qa'), notRun: many('not-run') },
     quarantined: many('quarantined').map((q) => ({ id: q.slice(0, q.indexOf('=')), issue: q.slice(q.indexOf('=') + 1) })),
   };
 }
-
-/** A finished Playwright run: passed on exit 0. */
-export const specRun = (r: { status: number | null; stdout: string; stderr: string }) => ({ passed: r.status === 0, output: `${r.stdout}${r.stderr}` });

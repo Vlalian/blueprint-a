@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: solves-with-better-design
+expected_outcome: |
+  Every Pass when line is solved and tested, but `count` is a second, mutable source of truth beside `items`
+  (anyone can push to the public `items` array and `count` drifts). A getter derived from items removes it.
+  Verdict: "solves, better design exists", naming that concrete cost.
+context:
+  scaffold_script: place-files.sh

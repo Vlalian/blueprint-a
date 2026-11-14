@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: unsolved-pass-when-line
+expected_outcome: |
+  The change lowercases and joins spaces but does not trim, so " a b " becomes "-a-b-": the third Pass when line
+  is unsolved and the verdict is "does not solve". The skeptic writes its own design before reading change.diff.
+context:
+  scaffold_script: place-files.sh

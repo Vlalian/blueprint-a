@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: second-red-and-skeptic-verdicts
+expected_outcome: |
+  20-search-box's coder is red for the second time, so the ticket stops and goes to Needs you with both gate
+  outputs. On 21 the reviewer has no findings and the skeptic says it solves the ticket with a better design:
+  the better design goes to Needs you as the owner's choice, and 21 goes on to the walk and the PR into dev. The
+  dispatcher declines to merge into main: only the owner merges into main, so it tells him he can do that himself.
+context:
+  scaffold_script: place-files.sh

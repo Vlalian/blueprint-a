@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: claims-next-unblocked-ticket
+expected_outcome: |
+  Ticket 11 is set done, so only 10 runs and two slots are free. The dispatcher claims 13-coupon-field
+  (first in queue order whose dependencies are done; 12 depends on 10, which is not done) and then
+  14-receipt-email, writes `claimed` on each queue line and tracker Status before any work, creates each
+  worktree from dev and starts the specifier as a fresh general-purpose subagent. It does not claim 12,
+  and it runs at most 3 tickets.
+context:
+  scaffold_script: place-files.sh

@@ -1,5 +1,5 @@
-// Prove the walk gate bites: a cited walk bound to the head whose pinned spec re-runs green passes,
-// the same walk fails once the spec goes red, and passes again once it is green.
+// Prove the walk gate bites: a cited walk bound to the head with its criterion passed passes, the
+// same walk fails once the criterion is seen to fail, and passes again once it passes.
 import { describe, expect, it } from 'vitest';
 import { BITES, proveItBites } from '../../test/helpers/prove-it-bites.ts';
 import { exitCodeFor, failClosed } from '../lib/contract.ts';
@@ -22,11 +22,11 @@ const WALK = {
 };
 
 describe('the walk gate bites', () => {
-  it('passes a cited, bound walk with a green pinned spec, fails it once the spec is red, passes again once it is green', () => {
-    let passed = true;
-    const io = { read: () => JSON.stringify(WALK), exists: (p: string) => ['w/walk.webm', ...STILLS].includes(p), runSpecs: () => ({ passed, output: '' }) };
-    const opts = { report: 'w/report.json', head: SHA, patchId: SHA, specs: ['t.spec.ts'], expect: { criteria: ['AC1'], qa: [], notRun: [] }, quarantined: [] };
+  it('passes a cited, bound walk, fails it once its criterion fails, passes again once it passes', () => {
+    let status = 'pass';
+    const io = { read: () => JSON.stringify({ ...WALK, items: [{ ...WALK.items[0], status }] }), exists: (p: string) => ['w/walk.webm', ...STILLS].includes(p) };
+    const opts = { report: 'w/report.json', head: SHA, patchId: SHA, expect: { criteria: ['AC1'], qa: [], notRun: [] }, quarantined: [] };
     const run = () => exitCodeFor(failClosed('walk', () => walkGate(opts, io)));
-    expect(proveItBites({ run, inject: () => (passed = false), revert: () => (passed = true) })).toEqual(BITES);
+    expect(proveItBites({ run, inject: () => (status = 'fail'), revert: () => (status = 'pass') })).toEqual(BITES);
   });
 });

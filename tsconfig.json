@@ -11,6 +11,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["gates", "adapters", "runner", "flow", "test"],
+  "include": ["gates", "adapters", "runner", "test"],
   "exclude": ["**/fixtures/**", "node_modules"]
 }

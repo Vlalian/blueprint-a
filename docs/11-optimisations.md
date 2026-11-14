@@ -4,9 +4,9 @@ The reference build ran this workflow every night for two weeks (2026-10-04 to 2
 measured where the time went and which step caught which defect. This page lists the changes that
 paid off, in the order to adopt them, each with what it saves, how to build it, and how to prove it
 bites. None of them weakens a gate: each one skips only work whose result is already known, and
-**falls back to the full check whenever it cannot prove that**. Items 1 to 4 and 8 are code in
-this package ([12-runner.md](12-runner.md)), items 5 to 7 too (`flow/`,
-[02-flow-and-roles.md](02-flow-and-roles.md)); each of their sections ends with where.
+**falls back to the full check whenever it cannot prove that**. Items 1 to 4 and 8 have supporting gate code in this package
+([12-runner.md](12-runner.md)). Items 5 to 7 are now responsibilities of the dispatch router
+([02-flow-and-roles.md](02-flow-and-roles.md)); the old flow scripts were retired in ticket 95.
 
 | # | Change | Saves (reference build) | Effort |
 |---|---|---|---|
@@ -26,7 +26,7 @@ and the merge gate re-mutated lines the build had already mutated. In two weeks 
 found nothing the first had missed; the merge gate's real catches were merge breaks.
 
 **How.**
-1. The run that builds the branch (a CI job, or the stop gate of the last role) writes its D3 result
+1. The run that builds the branch (a CI job, or the router after the last role) writes its D3 result
    as a file committed on the branch, for example `gate-reports/<branch>.json`, with: the base
    commit, the **head commit it ran on**, the files it covered, mutants killed and total, survivors,
    suppressions, and the highest CRAP score.
@@ -99,8 +99,9 @@ merge (301 s to 459 s over six merges). Gate time must not grow with the reposit
 the lockfile → every test runs; delete the graph file → every test runs and the summary says why.
 
 **In this package:** `runner/self-gate-select.ts` and `runner/affected-deps.ts` (steps 1-5, with
-`wholeSuite` and `graphDirs` in `config/runner.json`), and `runner/full-run.ts` with
-`runner/selection.ts` for the safety net and its selection misses (step 6).
+`wholeSuite` and `graphDirs` in `config/runner.json`). For step 6, run the full unit and
+integration suites explicitly and record selection misses in ticket progress; the full-run
+scheduler and selection-record pipeline were retired.
 
 ## 4. Never re-run a check on an unchanged tree
 
@@ -114,7 +115,7 @@ that made no edit re-ran every check.
    temporary index, never the real one).
 2. Before running a check, look up the key. A hit with a pass reuses the result; anything else runs
    the check.
-3. The controller does not re-run the checks the stop gate just passed on the same tree.
+3. The router reuses configured cached checks only while their tree and commands still match.
 4. A role or fix round that leaves the tree unchanged reuses the last results.
 5. A blocked round whose retry leaves the tree unchanged escalates at once with the original
    failure, instead of running identical checks up to the retry limit.
@@ -135,7 +136,7 @@ pre-commit hook or a CI job. Steps 3 to 5 are the controller's, in the harness.
 **Why.** Over two weeks the independent review found almost every real defect; the gates mostly
 caught merge breaks. Reviews by the family that did not build: 36 runs with 18 high findings in one
 direction, 13 runs with 1 high in the other. [02-flow-and-roles.md](02-flow-and-roles.md) says one
-reviewer *should* be another family; make it a rule.
+reviewer and skeptic come from the family that did not build.
 
 **How.**
 1. Record the builder's family on every build and fix round (one line in the ticket's result:
@@ -143,17 +144,16 @@ reviewer *should* be another family; make it a rule.
 2. The reviewer for that round is the **other** family. Either family may build; the one that built
    never reviews its own round alone.
 3. Fix rounds are reviewed too, by the family that did not make the fix.
-4. When the other family is unavailable, the stand-in reviewer of
-   [02-flow-and-roles.md](02-flow-and-roles.md) applies, and the briefing says so.
+4. When the other family is unavailable, record the missing independent verdict for the owner;
+   do not count a review by the builder as independent.
 5. Docs-only changes need no review.
 
-**Prove it bites:** a round marked `Builder: A` reviewed only by family A → the merge gate refuses
-it with "no review by the other family".
+**Prove it bites:** give the router a round marked `Builder: A` with only family A reviews;
+verify it requests the independent judges before integration.
 
-**In this package:** `flow/review.ts` with `flow/model-run.ts`: `flow review <ticket>` gives the round
-to a family of `config/flow.json` other than its last `Builder:` line and refuses the builder's own,
-and `flow merge` (`flow/merge.ts`) refuses a round whose recorded review is by the family that built
-it. Not yet built here: the docs-only exemption of step 5. See [02-flow-and-roles.md](02-flow-and-roles.md).
+**In this package:** `skills/dispatch/roles.md` assigns the reviewer and skeptic to the other
+family and repeats them after fixes on the new head. The router records and checks the evidence;
+there is no `flow review` or `flow merge` program enforcing this rule.
 
 ## 6. The builder runs the strict checks before handover
 
@@ -164,16 +164,16 @@ round of about 40 minutes.
 **How.**
 1. Every build and fix brief ends with: run the **full** unit suite, and D3 on the touched code,
    before handing over; report the highest CRAP and the mutants killed of total in the result.
-2. The handoff gate (E2) refuses a handover whose result does not state both numbers for the head
-   commit.
+2. The router runs the role checks itself and records both numbers for the current head.
+   The old handoff format gate was retired; an incomplete result must be resolved by the router.
 3. For a model that cannot run the mutation tool in its sandbox, run CRAP from a coverage file at
    least, and say so in the result.
 
-**Prove it bites:** a handover result without a CRAP line → E2 refuses it.
+**Prove it bites:** give the router an incomplete hardener result; verify it obtains the
+missing gate evidence before starting the judges.
 
-**In this package:** `flow/build.ts`: every build brief asks for the checks and both numbers, and
-the round is pushed only when `config/flow.json`'s `checks` pass in its worktree. The E2 refusal of
-step 2 is the handoff gate's (`gates/handoff`).
+**In this package:** `skills/dispatch/roles.md` runs each role's checks and the consolidated
+check before judging. This is a router responsibility, with executable gates as evidence.
 
 ## 7. Cap builds in flight, and merge the base into open branches
 
@@ -189,17 +189,16 @@ ahead of them (four breaks in one night).
 3. A branch that conflicts or fails typecheck is left untouched and listed, with its conflicting
    files, for the next fix round. A branch a build is writing to is skipped: that build merges the
    base itself before it hands over.
-4. Never force-push. Record each push, skip and conflict, so the evaluation counts how often the
-   base breaks an open branch.
+4. Never force-push. Record each push, pending update and conflict in ticket progress.
 5. Mind item 2: this merge makes the branch's report stale.
 
-**Prove it bites:** with a fake git, four builds in flight → a warning; a conflicting branch → left
-unchanged and listed.
+**Prove it bites:** exercise the router with three active tickets; verify it does not claim a
+fourth. A conflicting branch must be recorded for a fix round.
 
-**In this package:** `flow/in-flight.ts` (the cap of `config/flow.json`, `buildCap`, every family
-together; `flow status` warns above it, `flow build` refuses a round over it) and `flow/base-into.ts` (run
-by `flow merge` after each push: a worktree per open branch, the configured typecheck, never a
-force-push, one `base-into` record per branch).
+**In this package:** `skills/dispatch/queue.md` caps active tickets at three and
+`merge-into-dev.md` updates idle branches after integration. Active branches receive a pending
+update entry. Conflicts start a fix round; every head change makes earlier evidence stale.
+The cap and branch coordination are instructions, not a script lock or a metrics pipeline.
 
 ## 8. Allow for load on Windows
 

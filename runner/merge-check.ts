@@ -1,10 +1,9 @@
 // A repo's own question for the merge mode (ticket 83). The runner's merge mode asks one more thing
 // a repo may want before a merge, such as whether the owner chose the change (this repo's
 // scripts/self-gate-chosen.ts): config/runner.json's `mergeCheck` names a module whose export
-// `mergeCheck` answers it. The check's lines are printed before the gate, a refusal fails the merge,
-// and the records of a merge that passed go to the observation log. None is asked when unset.
+// `mergeCheck` answers it. The check's lines are printed before the gate and a refusal fails the
+// merge. None is asked when unset.
 
-import type { Observation, ObservationBase } from './observations.ts';
 import type { RunnerConfig } from './runner-config.ts';
 
 /** git's output, or undefined when the command failed. */
@@ -15,8 +14,6 @@ export interface MergeVerdict {
   lines: string[];
   /** Whether it refuses the merge. */
   refused: boolean;
-  /** What a merge the gate passed logs, with the run's shared fields. */
-  records(base: ObservationBase): Observation[];
 }
 
 /** The check: the branch being merged, the gate's base, and git. */

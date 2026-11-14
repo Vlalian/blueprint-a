@@ -1,7 +1,7 @@
 {
   "name": "blueprint-a",
-  "version": "0.9.0",
-  "description": "A gated agent workflow, harness-neutral: docs plus the gates as code",
+  "version": "1.0.0",
+  "description": "A gated agent workflow: dispatch and role skills, docs and gates as code",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "gate": "node runner/self-gate.ts",
     "checks": "node runner/runner-checks.ts",
-    "flow": "node flow/cli.ts"
+    "install:skills": "node runner/install-skills.ts"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",

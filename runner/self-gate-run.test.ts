@@ -17,7 +17,7 @@ describe('checkSteps — typecheck and tests, each started through node itself',
     expect(checkSteps(ROOT, { integration: false, testJson: '/runs/tests.json' })).toEqual([
       { id: 'typecheck', name: 'typecheck', command: process.execPath, args: [entry('typescript', 'bin', 'tsc'), '--noEmit'] },
       { id: 'unit', name: 'unit tests', command: process.execPath, args: [vitest, 'run', ...json] },
-      { id: 'locks', name: 'locked files', command: process.execPath, args: [join(ROOT, 'gates', 'locks', 'cli.ts')] },
+      { id: 'canary', name: 'canary (every gate still bites)', command: process.execPath, args: [join(ROOT, 'gates', 'canary', 'cli.ts')] },
     ]);
   });
 
@@ -35,14 +35,13 @@ describe('checkSteps — typecheck and tests, each started through node itself',
     expect(checkSteps(ROOT, { integration: true, testJson: '/runs/tests.json', integrationConfig: 'vitest.slow.config.ts' })[2].args).toEqual([vitest, 'run', '--config', 'vitest.slow.config.ts']);
   });
 
-  it('passes the merge ref to the locks stage for detached integration worktrees', () => {
-    expect(checkSteps(ROOT, { integration: true, testJson: '/runs/tests.json', merge: 'origin/ticket/67-x' }).at(-1)?.args)
-      .toEqual([join(ROOT, 'gates', 'locks', 'cli.ts'), '--branch', 'origin/ticket/67-x']);
+  it('runs the canary the same way in merge mode', () => {
+    expect(checkSteps(ROOT, { integration: true, testJson: '/runs/tests.json', merge: 'origin/ticket/67-x' }).at(-1)?.args).toEqual([join(ROOT, 'gates', 'canary', 'cli.ts')]);
   });
 
   it('in merge mode runs the unit suite once, with v8 json coverage for CRAP, and the property tests on their own (ticket 31)', () => {
     const steps = checkSteps(ROOT, { integration: false, testJson: '/runs/tests.json', coverageDir: '/runs/cov' });
-    expect(steps.map((s) => s.id)).toEqual(['typecheck', 'unit', 'property', 'locks']);
+    expect(steps.map((s) => s.id)).toEqual(['typecheck', 'unit', 'property', 'canary']);
     expect(steps[1]).toEqual({
       id: 'unit',
       name: 'unit tests (with coverage)',
@@ -66,23 +65,23 @@ describe('checkSteps — typecheck and tests, each started through node itself',
       ['a.test.ts', 'c.test.ts'],
       ['--passWithNoTests', 'b.property.test.ts'],
       ['vitest.integration.config.ts', 'd.integration.test.ts'],
-      [join(ROOT, 'gates', 'locks', 'cli.ts')],
+      [join(ROOT, 'gates', 'canary', 'cli.ts')],
     ]);
     expect(steps[1].args.slice(0, -2)).toEqual([vitest, ...coverageArgs('/runs/cov'), '--coverage.reportOnFailure', ...json]);
   });
 
   it('leaves out a stage whose selection is empty, and runs every integration test without one', () => {
     const none = checkSteps(ROOT, { integration: true, testJson: '/runs/tests.json', coverageDir: '/runs/cov', unitTests: [], integrationTests: [] });
-    expect(none.map((s) => s.id)).toEqual(['typecheck', 'locks']);
+    expect(none.map((s) => s.id)).toEqual(['typecheck', 'canary']);
     const onlyProperty = checkSteps(ROOT, { integration: true, testJson: '/runs/tests.json', coverageDir: '/runs/cov', unitTests: ['p.property.test.ts'] });
-    expect(onlyProperty.map((s) => s.id)).toEqual(['typecheck', 'property', 'integration', 'locks']);
+    expect(onlyProperty.map((s) => s.id)).toEqual(['typecheck', 'property', 'integration', 'canary']);
     expect(onlyProperty[2].args).toEqual([vitest, 'run', '--config', 'vitest.integration.config.ts']);
   });
 });
 
 describe('SELF_GATE_STAGES', () => {
-  it('names every stage a self-gate run can have, each a gate in the function registry', () => {
-    expect(SELF_GATE_STAGES).toEqual(['typecheck', 'unit', 'property', 'integration', 'locks', 'sast', 'onkel']);
+  it('names every stage a self-gate run can have', () => {
+    expect(SELF_GATE_STAGES).toEqual(['typecheck', 'unit', 'property', 'integration', 'canary', 'sast', 'onkel']);
   });
 });
 
@@ -126,8 +125,8 @@ describe('sastStep', () => {
   });
 });
 
-it('includes the lock backstop in normal and merge self-gates', () => {
+it('ends normal and merge self-gates with the canary (ticket 95)', () => {
   for (const options of [{ integration: false, testJson: 'tests.json' }, { integration: false, testJson: 'tests.json', coverageDir: 'cov', unitTests: [] }]) {
-    expect(checkSteps(ROOT, options).at(-1)).toEqual({ id: 'locks', name: 'locked files', command: process.execPath, args: [join(ROOT, 'gates', 'locks', 'cli.ts')] });
+    expect(checkSteps(ROOT, options).at(-1)).toEqual({ id: 'canary', name: 'canary (every gate still bites)', command: process.execPath, args: [join(ROOT, 'gates', 'canary', 'cli.ts')] });
   }
 });

@@ -1,9 +1,10 @@
-# Blueprint A: a gated agent workflow, harness-neutral
+# Blueprint A: a gated agent workflow
 
-**Release v0.8.** Docs plus the gates as code (from v0.7 every gate of the reference build that needs no harness), the gate runner that makes them fast (from v0.8: one command for every gate, a merge that trusts a CI report at the exact commit, only the tests a change can reach, a check never run twice on one tree), a project rules file (`AGENTS.md.example`), owner consent and locked files as gates, with test-strength adapters for JS/TS and .NET, host adapters for GitHub and Azure DevOps, an environment adapter for previews and incidents on Kubernetes, and a SonarQube adapter. The reference build of this workflow has run its
-first real end-to-end pilot; the docs carry its numbers. Anything still marked
-**(to confirm after the pilot)** is a design choice or a number the pilot did not settle;
-[MIRROR.md](MIRROR.md) lists each one, and what was resolved.
+**Release v1.0.0.** A dispatch router and twelve role skills, including evals, alongside docs,
+quality gates and language adapters. The flow uses role subagents; the router calls the gates
+when each role returns. The script flow, guard hooks, deleted gates and measurement tools from
+v0.9.0 are retired. The skills remain Claude Code skills, while the gates run on Node alone. Work-harness wiring is
+decided at work.
 
 ## What this is
 
@@ -12,16 +13,15 @@ gates, not the model's own judgement, decide whether work may move on**. Agents 
 roles plan, write, clean and harden code; small programs with fixed exit codes check every step;
 a human approves plans, accepts lessons and merges.
 
-The flow in one line: the human starts a run → a dispatcher script fills a few controller slots →
-each controller drafts a plan, the plan gates check it, **the human approves it** → a specifier
-writes failing tests, a coder makes them pass, a cleaner tidies, a hardener strengthens the tests,
-and a stop gate refuses "I am done" until that role's gates are green (escalating to the human
-after two red stops) → a batch review with a skeptic → a verdict for the exact commit, CI green
-on that commit, a draft pull request → **the human merges**. A briefing tells the human what the
-agents decided and what they learned. Details: [docs/02-flow-and-roles.md](docs/02-flow-and-roles.md).
+The owner chooses tasks and approves plans. The router starts specifier, coder, cleaner and
+hardener subagents in order, runs their gates, then starts an independent reviewer and skeptic.
+A preview walk and CI judge the exact head before integration. The scout proposes new work and
+the briefing records results and choices. Details: [docs/02-flow-and-roles.md](docs/02-flow-and-roles.md).
 
-The package has two halves:
+The package contains:
 
+- **`skills/`** holds the dispatch router and every role it names. Each folder is complete,
+  including eval cases. Supply project configuration and directives at the installed root.
 - **`docs/`** describes concepts, contracts and reasons. It carries no code for any particular
   agent harness. It was distilled from a working reference build on another harness and from an
   analysis of five public agent workflows, but you need neither to use it.
@@ -33,16 +33,30 @@ The package has two halves:
   Node alone (22.18 or later; TypeScript runs as is, no build step). Each
   keeps its tests and a prove-it-bites test.
 
+## First run
+
+1. Run `npm ci`, then `npm run install:skills` to install `/dispatch` for Claude Code and bind
+   `{{WORKFLOW_ROOT}}` to this package's absolute path. Keep the package at that path.
+2. Copy `AGENTS.md.example` to `AGENTS.md` and fill in the owner's rules and locked-file list.
+3. Copy `project.json.example` to `projects/<name>/project.json`. Edit the repo, tracker,
+   branch, safety, commands and role settings for your project. The example uses JS/TS commands;
+   use the .NET alternatives below when needed. Confirm safety settings with the owner.
+4. Open Claude Code in the project and type `/dispatch`.
+
+For .NET, use `dotnet format --verify-no-changes`, `dotnet build --no-restore`, `dotnet test`
+and `dotnet build` as lint, typecheck, test and build commands. Replace the hardener's onkel
+command with `node "{WORKFLOW}/gates/test-strength/cli.ts" crap --runner dotnet src/App.cs`
+and a second check using `mutation --runner dotnet src/App.cs`. Set the actual source paths.
+Configure the red check with a test command that emits the required JSON report; `dotnet test`
+alone does not do that. Verify each configured gate against your project's real test output.
+Omit `walk` when no preview exists, and omit `neon` unless the project uses Neon.
+
 ## The gates in this package
 
 | Gate | Folder | Contract |
 |---|---|---|
 | Secret scan | `gates/secret-scan` | C2: no secret in the lines a change adds |
 | Hidden Unicode | `gates/hidden-unicode` | C3: no invisible or direction-changing character in added lines |
-| Git guard | `gates/git-guard` | A1: no force push, push to main, hook bypass, merge or "ready" by an agent |
-| Tamper | `gates/tamper` | A2 backstop: no protected path (`config/tamper.json`) and no hook file differs from the base, unless the config's exception module lets the change through |
-| Owner consent | `gates/consent` | A8: a ticket is buildable only with the owner's quoted choice; a locked path changes only on such a ticket's branch |
-| Locked files | `gates/locks` | A9: every locked file matches its recorded SHA-256 unless the branch builds an agreed ticket |
 | Import boundaries | `gates/boundaries` | C4: no import cycle, no import that resolves to nothing |
 | Duplication | `gates/duplication` | C5: no clone (jscpd) with a line the change added |
 | Four checks | `gates/four-checks` | C1: the project's lint, typecheck, test and build all green |
@@ -54,24 +68,15 @@ The package has two halves:
 | CRAP and mutation on changed lines | `gates/onkel`, `gates/hardener/gate.ts` | D3, scoped to the lines a change touched (vitest projects) |
 | Canary | `gates/canary` | D5: every prove-it-bites test still passes clean input, fails the injected fault and passes the revert; each gate's state is logged |
 | Plan gate | `gates/plan` | E1: plan lint, cross-artifact, EARS criteria, command allow list |
-| Handoff gate | `gates/handoff` | E2: machine-valid handoffs between roles |
-| Review schema | `gates/review-schema` | E3: a reviewer's output is exactly the findings shape, or it blocks; the skeptic's refutation shape |
-| Tool licence check | `gates/licence` | E4: a tool's licence is on the allowlist and its repository is the one meant |
-| Prose lint | `gates/slop-lint/lint.ts` | E5 (a library, no CLI): banned filler, stock phrases, emoji headings, contrasts, long dashes |
 | CI green on the exact commit | `gates/ci-on-sha/gate.ts` + `adapters/host` | F1: CI green on the very commit being shipped, on GitHub or Azure DevOps |
-| SonarQube's quality gate on the exact commit | `gates/sonarqube/gate.ts` + `adapters/sonarqube` | VERIFIED / FAILED / NOT-VERIFIED like F1, from the analysis of the very commit being shipped; new-code issues as findings |
 | Supply-chain scan | `gates/supply-chain` | F4: every new or changed lockfile package has an allowed licence or a written exception, and runs an install script only if listed (`config/supply-chain.json`) |
-| Walk gate | `gates/walk` + `gates/evidence` | F5: a walk of the preview is cited, bound to the head and patch-id, complete, and its pinned specs re-run green |
+| Walk gate | `gates/walk` + `gates/evidence` | F5: a walk of the preview is cited, bound to the head and patch-id, complete, with evidence matching each criterion |
 
 `gates/lib` holds the shared contract (`contract.ts`), the diff reader and the git helpers;
 `test/helpers/prove-it-bites.ts` the clean → injected → reverted check every gate is proven with.
-Names, paths and the owner come from configuration files in `config/`, never from code:
-`consent.json` (A8), `locks.json` (A9, a default list without it), `tamper.json` (the tamper
-gate's protected globs, owner, hook files and exception module; it does not run without one),
-`canary.json` (the folders the canary searches; `gates` and `adapters` without it),
-`supply-chain.json` (F4's exceptions; the one shipped covers this package's own dev tools),
-`runner.json` (the gate runner's settings, each with a default; the one shipped is this package's
-own) and `package-rules.json` (the names the package check refuses; empty, add your own).
+Project-specific gate commands and safety settings come from project configuration. The package
+ships runner, supply-chain, canary and package-check settings for its own gates. Adapt those to
+your repository; no private project configuration is shipped.
 The full contracts, including the gates that are only described, are in
 [docs/03-gates.md](docs/03-gates.md).
 
@@ -122,7 +127,7 @@ The CI and pull-request gates read only five calls (`adapters/host/host.ts`):
 from the `AZURE_DEVOPS_PAT` environment variable only (without it, every call exits 2 naming the
 variable; the token never appears in output). A draft pull request on Azure DevOps is created
 with `isDraft: true` and never set to complete itself. `gates/ci-on-sha/gate.ts` is the F1 gate on
-that interface; a harness wires its own command line around it, as with the hardener.
+that interface; its CLI and the hardener CLI are shipped for the router.
 `adapters/host/README.md` lists every Azure DevOps call with its Microsoft reference page and
 what is still unverified: the tests run on replies in `fixtures/azure-devops/`, written in the
 shape of Microsoft's published examples, and the first live check happens at work.
@@ -143,41 +148,11 @@ unless the project config turns rollback on; then at most one automatic rollback
 tests run on output in `fixtures/kubernetes/`, never against a cluster; the first live check
 happens at work.
 
-### The SonarQube adapter
-
-The sonarqube gate reads SonarQube through four calls (`adapters/sonarqube/sonarqube.ts`):
-`analysisFor(sha, ref)`, `qualityGate(ref)`, `newIssues(ref)` and `newCodeMeasures(ref)`.
-It waits for the analysis of the exact head commit and gives F1's verdicts:
-- `VERIFIED`: the analysis passed its quality gate.
-- `FAILED`: it failed, with the conditions that failed.
-- `NOT-VERIFIED`: every `analysisFor` state but a finished analysis: the analysis is still
-  running (`running`), only an older commit was analysed (`stale`), the analysis failed
-  (`failed`), there is no analysis of the commit at all (`none`), or a pull request was given
-  without the task the scanner submitted for it, so no analysis can be bound to the commit
-  (`unbound`). A project with no quality gate is NOT-VERIFIED too. A stale analysis is never a
-  pass.
-
-A branch's analysis is matched by the commit it names. A pull request's analysis is matched by the
-task the scanner submitted for the commit (`ceTaskId` in `report-task.txt`): SonarQube's Web API
-names no commit for a pull request analysis.
-
-The server and project key come from the project's settings, and the token from the `SONAR_TOKEN`
-environment variable only. Without it the gate exits 2 naming the variable, and the token never
-appears in output.
-
-Each new-code issue becomes a finding with source `sonarqube`, triaged as a real defect, style or a
-false alarm. A finding of a kind one of our gates checks names that gate. `adapters/sonarqube/findings.ts`
-compares SonarQube's findings with ours on the same commit.
-
-[docs/09-sonarqube.md](docs/09-sonarqube.md) covers where SonarQube and our gates overlap, what
-SonarQube does not check, and its editions. `adapters/sonarqube/README.md` lists every call, its
-source and what is unverified. The tests run on replies in `fixtures/sonarqube/`, written in the
-shape of SonarQube's own example answers, and the first live check happens at work.
-
 ## Who it is for
 
 You, sitting with a different agent harness (for example an opencode-style harness with agents,
-commands and plugins) and a local model, wanting to build the same kind of gated workflow there.
+commands and plugins) and a local model, wanting to build the same kind of gated workflow there. The package includes
+Claude Code role skills and a router; their work-harness wiring is decided at work.
 The intended use is a conversation: give your local LLM this folder, ask it to explain the flow
 back to you, then work through [docs/06-open-questions.md](docs/06-open-questions.md) together and
 decide how each piece maps onto your harness and your hosts.
@@ -208,7 +183,7 @@ them.
 9. [docs/09-sonarqube.md](docs/09-sonarqube.md): reading SonarQube's quality gate, where it
    overlaps our gates and what it does not check (when work runs SonarQube)
 10. [docs/10-agents-md.md](docs/10-agents-md.md): the project's `AGENTS.md` (from
-    `AGENTS.md.example`) and the two gates that enforce its consent and lock rules
+    `AGENTS.md.example`) and owner-consent and lock concepts retired as executable gates in v1.0.0
 11. [docs/11-optimisations.md](docs/11-optimisations.md): eight measured changes that cut gate and
     build time without weakening a gate, each with how to build it
 12. [docs/12-runner.md](docs/12-runner.md): the gate runner that does five of them, run locally, in
@@ -232,7 +207,7 @@ deprecated `glob`.
 
 Each CLI's header lists its arguments. For example, run
 `node gates/secret-scan/cli.ts --staged` in a pre-commit hook, or
-`node gates/git-guard/cli.ts --branch feature/x "git push --force"` from a pre-tool hook.
+the configured role checks when a subagent returns.
 The red check's test command must emit Vitest/Jest JSON naming the requested file with a failed assertion; the default
 is `npx vitest run --reporter=json`. Set `--test-command "npx jest --json"` for Jest. An import
 or configuration error alone does not prove a test red.
@@ -250,7 +225,7 @@ repository from it:
    cd blueprint-a
    git init -b main
    git add -A
-   git commit -m "Blueprint A v0.8.0"
+   git commit -m "Blueprint A v1.0.0"
    ```
 
 2. Create an empty repository on the host, with no README or licence, so the first push is not
@@ -267,9 +242,8 @@ make changes to it in the reference and export again, or fork it at work and sto
 
 ## How to use it with a local model
 
-- **Start small.** The first useful slice is: one coder agent, the four basic checks (lint,
-  typecheck, tests, build) wired to the stop event, and a counter that escalates to you after two
-  blocked stops. Everything else can be added gate by gate.
+- **Start small.** The first useful slice is: one coder subagent and the four basic checks (lint,
+  typecheck, tests, build), run by the router when it returns. A second red goes to you. Everything else can be added gate by gate.
 - **Keep instructions short.** Weaker local models follow short, concrete role briefs better
   than long prose. The gates carry the rigour, so the prompts do not have to.
 - **Read each gate's contract.** Most command-line gates print one JSON object and exit 0
@@ -285,14 +259,28 @@ make changes to it in the reference and export again, or fork it at work and sto
 
 ## What is deliberately not here
 
-- No agent harness: no dispatcher, controller, role skills or hooks for any particular harness.
-  The parts of the reference's dispatcher the gate runner needs (its observation log, the test
-  selection's records, the tempo stats) are in `runner/`, harness-neutral.
+- No script dispatcher or agent hooks. `skills/dispatch` is a Claude Code router skill,
+  accompanied by all twelve role skill folders and their evals. It starts fresh subagents and
+  runs the executable gates when they return. Mapping those skills to another harness is work
+  to do at work. The retired script flow and measurement tools remain in v0.9.0.
   [MIRROR.md](MIRROR.md) lists every part of the reference build that was left out, and why.
 - No secrets, personal paths, private project names or links to private repositories. The
   folder is scanned for these before it leaves the reference repository.
 - No vendored third-party text. Ideas taken from other workflows and authors are paraphrased and
   credited by name in [docs/05-decisions.md](docs/05-decisions.md) and in [LICENSE](LICENSE).
+
+## Credits
+
+Sources of ideas, paraphrased here:
+
+- Robert C. Martin (Uncle Bob): [Agentic Discipline](https://cleancoders.com) and his [crap4* and mutate4* repositories](https://github.com/unclebob) inspired the CRAP-and-mutation hardening gate (onkel). No code or text was taken, since those repositories carry no licence.
+- pstack: coordinator roles, verdicts tied to an exact commit, retry tables, pull-request state machines and plan linting.
+- ECC: tool-blocking hooks, shell-parsing guards, secret and hidden-Unicode scans, and hook hygiene.
+- [Matt Pocock's skills](https://github.com/mattpocock/skills): skill style, router skill and wayfinder.
+- [backnotprop/product-engineering](https://github.com/backnotprop/product-engineering): the pe-verify walk.
+
+These are idea credits, consistent with the attribution in [LICENSE](LICENSE); no source code or
+text from these sources is included.
 
 ## Licence
 

@@ -1,0 +1,13 @@
+{
+  "name": "shop",
+  "repo": { "remote": "https://github.com/acme/shop.git", "worktree": "../shop-{ticket}", "branchPrefix": "t/" },
+  "integrationBranch": "dev",
+  "promoteTo": "main",
+  "tracker": "tracker",
+  "pr": { "remote": "origin", "base": "dev", "coderabbit": true },
+  "roles": {
+    "coder": { "model": "sonnet", "timeoutMinutes": 30, "editablePaths": ["src/**"],
+      "checks": { "lint": "npm run lint", "typecheck": "npx tsc --noEmit", "test": "npm test",
+        "test-deletion": "node \"{WORKFLOW}/gates/test-deletion/cli.ts\" --base {BASE} --plan \"{PLAN}\"" } }
+  }
+}

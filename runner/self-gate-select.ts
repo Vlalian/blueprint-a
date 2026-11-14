@@ -1,4 +1,4 @@
-// Which tests the fast merge gate runs (ticket 56). the owner' rule (2026-10-05): run the tests the
+// Which tests the fast merge gate runs (ticket 56). the owner's rule (2026-10-05): run the tests the
 // change can affect, which is the changed code and everything that depends on it. So the merge's
 // changed files are walked up the module graph (scripts/affected-deps.ts) and each test file the
 // walk reaches is selected, unit and integration alike. Run-time edges are read from the test
@@ -14,7 +14,6 @@
 // edges, so dependency-cruiser's graph (config/dependency-cruiser.cjs) is the one recorded.
 // Pure: the graph's texts in, a selection out.
 
-import type { Observation, ObservationBase } from './observations.ts';
 import { affectedBy, cruiseGraph, graphFiles, runtimeDeps, textDeps, treeOf, withDeps, type Graph } from './affected-deps.ts';
 import { DEFAULTS, matchesAny } from './runner-config.ts';
 
@@ -99,9 +98,3 @@ export function selectionLines(s: Selection): string[] {
 
 /** 1 when a changed file has no test that reaches it, else 0. */
 export const selectionExit = (s: Selection) => (!s.all && s.untested.length > 0 ? 1 : 0);
-
-/** The selection as an observation, for the full run to find the tests no merge selected. */
-export function selectionRecord(base: ObservationBase, sha: string, changed: string[], s: Selection): Observation {
-  const tests = s.all ? [] : [...s.unit, ...s.integration];
-  return { ...base, kind: 'selection', sha, changed, all: s.all, reason: s.all ? s.reason : '', tests };
-}

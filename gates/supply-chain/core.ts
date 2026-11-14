@@ -3,7 +3,7 @@
 // licence gate's allowlist, or have a written exception, and may run an install script only when
 // it is on the install-script allowlist. The lists are in config/supply-chain.json.
 
-import { ALLOWED_LICENCES, licenceOk } from '../licence/core.ts';
+import { ALLOWED_LICENCES, licenceOk } from '../lib/licence.ts';
 
 export interface LockPackage {
   name: string;

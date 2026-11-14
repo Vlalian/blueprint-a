@@ -9,30 +9,26 @@
 // them when that cannot be told, and every integration test with --integration), a changed file
 // no test reaches fails the gate, and the selection is logged; and Stryker mutates only the lines that differ from the cloud
 // branch's tip when its gate report proves its own gate mutated the rest (self-gate-cloud.ts).
-// Every run appends one gate observation per stage with its ms, the unit stage naming the ten
-// slowest test files, and prints the stage times. A run in a cloud session (or with --report
+// Every run prints the stage times and the ten slowest test files. A run in a cloud session (or with --report
 // <branch>) writes its gate report, which cloud-export.ts commits with the carry-back file; a
 // merge-mode run writes none, since it mutated only what it did not trust.
 // Merge mode also runs the sast gate (ticket 60): Semgrep's pinned security rules on the files
-// changed since the base; a new ERROR finding fails the merge, and each finding is logged as an
-// observation with source sast (dispatcher/sast-records.ts).
+// changed since the base; a new ERROR finding fails the merge.
 // Merge mode also asks the repo's own merge check when config/runner.json names one (ticket 83,
 // merge-check.ts; this repo's asks whether the owner chose the change, ticket 64): its lines are
-// printed first, a refusal fails the merge, and a merge that passes logs its records.
+// printed first, and a refusal fails the merge.
 // What is tied to a repo (the folders it grades and walks, the shells, the CI report's folder, the
 // CRAP limit, the state folder) is config/runner.json's (ticket 83, runner-config.ts).
 // Exit 0 when every stage passes, 1 when one fails, 2 when one could not run.
 
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { baseOf, observationLine, OBSERVATIONS, type SlowTestFile } from './observations.ts';
 import { timeoutLine, type MachineReport } from '../gates/onkel/machine.ts';
 import { cloudGateReport, judgeCloudReport, parseCloudReport, reportBranch, reportPath, trustLine, ungradedPaths, type CloudGateReport, type Trust, type TrustFacts } from './ci-report.ts';
-import { changedPaths, gradableFiles, objectOf, onkelArgs, seconds, slowestTestFiles, slowLines, stageObservations, timeoutArgs } from './self-gate-core.ts';
+import { changedPaths, gradableFiles, objectOf, onkelArgs, seconds, slowestTestFiles, slowLines, timeoutArgs, type SlowTestFile } from './self-gate-core.ts';
 import { emitsCode } from './affected-deps.ts';
-import { sastObservations } from './sast-records.ts';
 import { sastLines, type SastResult } from '../gates/sast/gate.ts';
-import { cruiseArgs, CRUISER, LS_FILES, moduleGraph, selectionExit, selectionLines, selectionRecord, selectTests, type Selection } from './self-gate-select.ts';
+import { cruiseArgs, CRUISER, LS_FILES, moduleGraph, selectionExit, selectionLines, selectTests, type Selection } from './self-gate-select.ts';
 import type { MergeCheck, MergeVerdict } from './merge-check.ts';
 import { parseRunnerConfig, RUNNER_CONFIG, type RunnerConfig } from './runner-config.ts';
 import { checkSteps, sastStep, stepStatus, timedLine, worstExit, type Stage, type Step, type StepOptions } from './self-gate-run.ts';
@@ -187,20 +183,6 @@ function summarize(r: Run, io: SelfGateIo): void {
   io.out(['', 'Self-gate:', ...r.results.map(timedLine), `  total  ${seconds(total)}`, ...selected, ...trusted, ...sastSummary(r.sast), ...onkelLines(r.onkel), ...slowLines(r.slowest), ''].join('\n'));
 }
 
-/** The run's state folder: WORKFLOW_STATE_DIR, else the configured one in the root. */
-const stateDir = (env: Env, c: RunnerConfig, io: SelfGateIo) => env.WORKFLOW_STATE_DIR ?? join(io.root, c.stateDir);
-
-/** One gate observation per stage, in the run's state folder. */
-function observe(r: Run, changed: string[], args: Args, env: Env, c: RunnerConfig, io: SelfGateIo): void {
-  const now = baseOf(env, io.now());
-  const base = { ...now, ticket: now.ticket || (args.merge ?? '') };
-  const head = headOf(io);
-  const selected = r.selection === undefined ? [] : [selectionRecord(base, head, changed, r.selection)];
-  const sast = r.sast === undefined ? [] : sastObservations(base, head, r.sast);
-  const records = [...stageObservations(base, head, r.results, r.slowest), ...selected, ...sast];
-  io.append(join(stateDir(env, c, io), OBSERVATIONS), records.map(observationLine).join(''));
-}
-
 /** The CI report, for --report's branch or a CI run's own. */
 function writeReport(args: Args, env: Env, onkel: MachineReport | undefined, exit: number, c: RunnerConfig, io: SelfGateIo): void {
   const branch = reportBranch(args.report, env, gitText(io, ['rev-parse', '--abbrev-ref', 'HEAD']), c.report.env);
@@ -227,7 +209,6 @@ function gate(args: Args, changed: string[], env: Env, c: RunnerConfig, io: Self
   const onkel = results.some((r) => r.id === 'onkel') ? machineOf(io.read(paths.onkelJson)) : undefined;
   const run: Run = { results, onkel, slowest: slowestTestFiles(io.read(paths.testJson), io.root), trust, selection, sast: sastRead(results, paths, io) };
   summarize(run, io);
-  observe(run, changed, args, env, c, io);
   if (args.merge === undefined) writeReport(args, env, onkel, exit, c, io);
   return exit;
 }
@@ -251,14 +232,8 @@ function verdictOf(merge: string | undefined, base: string, io: SelfGateIo): Mer
   return verdict;
 }
 
-/** The gate's exit with the check's: a refused merge fails; the records of one that passed are logged. */
-function settle(verdict: MergeVerdict | undefined, exit: number, env: Env, c: RunnerConfig, io: SelfGateIo): number {
-  if (verdict === undefined) return exit;
-  if (verdict.refused) return worstExit([exit, 1]);
-  const records = exit === 0 ? verdict.records(baseOf(env, io.now())) : [];
-  for (const r of records) io.append(join(stateDir(env, c, io), OBSERVATIONS), observationLine(r));
-  return exit;
-}
+/** The gate's exit with the check's: a refused merge fails. */
+const settle = (verdict: MergeVerdict | undefined, exit: number) => (verdict?.refused === true ? worstExit([exit, 1]) : exit);
 
 /** config/runner.json over its defaults; or why it cannot be read, and the merge check's load error. */
 function configOf(io: SelfGateIo): RunnerConfig | string {
@@ -282,5 +257,5 @@ export function selfGate(argv: string[], env: Env, io: SelfGateIo): number {
   // New files a ticket has not staged yet are changes too; without them onkel would skip them.
   const changed = changedPaths(diff.stdout, io.git(['ls-files', '--others', '--exclude-standard']).stdout);
   const verdict = verdictOf(rest.merge, base, io);
-  return settle(verdict, gate({ ...rest, integration: rest.integration === true, base }, changed, env, c, io), env, c, io);
+  return settle(verdict, gate({ ...rest, integration: rest.integration === true, base }, changed, env, c, io));
 }

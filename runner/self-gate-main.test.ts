@@ -1,6 +1,5 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseObservations, type Observation, type ObservationBase } from './observations.ts';
 import type { MergeCheck } from './merge-check.ts';
 import { parseRunnerConfig } from './runner-config.ts';
 import { onkelArgs } from './self-gate-core.ts';
@@ -119,10 +118,10 @@ function fake(f: Fake = {}) {
 
 const ENV = { WORKFLOW_STATE_DIR: '/state', WORKFLOW_PROJECT: 'workflow' };
 
-it('forwards --merge to the locks CLI while HEAD is detached', () => {
+it('runs the canary over every gate, the same in merge mode', () => {
   const g = fake({ branch: 'HEAD\n' });
   expect(selfGate(['--base', 'base1', '--merge', 'origin/ticket/7'], ENV, g.io)).toBe(0);
-  expect(g.ran.find((s) => s.id === 'locks')?.args).toEqual([join(ROOT, 'gates', 'locks', 'cli.ts'), '--branch', 'origin/ticket/7']);
+  expect(g.ran.find((s) => s.id === 'canary')?.args).toEqual([join(ROOT, 'gates', 'canary', 'cli.ts')]);
 });
 const onkelOf = (ran: Step[]) => ran.find((s) => s.id === 'onkel');
 const flagValue = (step: Step | undefined, flag: string) => step?.args[step.args.indexOf(flag) + 1];
@@ -153,7 +152,7 @@ describe('selfGate — normal mode, as cloud sessions run it', () => {
   it('runs typecheck, the unit tests and onkel, which runs its own coverage; no merge flags', () => {
     const g = fake();
     expect(selfGate(['--base', 'base1'], ENV, g.io)).toBe(0);
-    expect(g.ran.map((s) => s.id)).toEqual(['typecheck', 'unit', 'locks', 'onkel']);
+    expect(g.ran.map((s) => s.id)).toEqual(['typecheck', 'unit', 'canary', 'onkel']);
     const onkel = onkelOf(g.ran);
     expect(onkel?.args).not.toContain('--coverage');
     expect(onkel?.args).not.toContain('--trust');
@@ -183,16 +182,10 @@ describe('selfGate — normal mode, as cloud sessions run it', () => {
     expect(args.join(' ')).toContain(`--exempt ${SHELLS.at(-1)} --exempt scripts/new-cli.ts --timeout-ms`);
   });
 
-  it('logs one record per stage and no selection', () => {
-    const g = fake();
-    selfGate(['--base', 'base1'], ENV, g.io);
-    expect(g.appended[0][1].trim().split('\n')).toHaveLength(4);
-  });
-
   it('runs no onkel when no source file changed', () => {
     const g = fake({ changed: 'docs/x.md\n' });
     selfGate(['--base', 'base1'], ENV, g.io);
-    expect(g.ran.map((s) => s.id)).toEqual(['typecheck', 'unit', 'locks']);
+    expect(g.ran.map((s) => s.id)).toEqual(['typecheck', 'unit', 'canary']);
   });
 
   it('runs the integration tests only with --integration, whatever changed', () => {
@@ -217,7 +210,7 @@ describe('selfGate --merge — the fast merge gate (ticket 31)', () => {
     const g = fake();
     selfGate(MERGE, ENV, g.io);
     // No module graph in this fake: the selection fails closed and every test runs (ticket 56).
-    expect(g.ran.map((s) => s.id)).toEqual(['typecheck', 'unit', 'property', 'integration', 'locks', 'sast', 'onkel']);
+    expect(g.ran.map((s) => s.id)).toEqual(['typecheck', 'unit', 'property', 'integration', 'canary', 'sast', 'onkel']);
     const unit = g.ran.filter((s) => s.id === 'unit');
     expect(unit).toHaveLength(1);
     expect(unit[0].args).toContain('--coverage.enabled');
@@ -320,9 +313,9 @@ describe('selfGate --merge — the fast merge gate (ticket 31)', () => {
 
   it('skips a stage the selection leaves empty; without a unit run onkel measures its own coverage', () => {
     const r = selected('scripts/a.ts\n');
-    expect(r.ids).toEqual(['typecheck', 'unit', 'locks', 'sast', 'onkel']);
+    expect(r.ids).toEqual(['typecheck', 'unit', 'canary', 'sast', 'onkel']);
     const t = selected('gates/top.ts\n');
-    expect(t.ids).toEqual(['typecheck', 'property', 'integration', 'locks', 'sast', 'onkel']);
+    expect(t.ids).toEqual(['typecheck', 'property', 'integration', 'canary', 'sast', 'onkel']);
     const after = (g: ReturnType<typeof fake>) => {
       const args = onkelOf(g.ran)?.args ?? [];
       return args.slice(args.indexOf('--json') + 2);
@@ -366,55 +359,9 @@ describe('selfGate --merge — the fast merge gate (ticket 31)', () => {
     expect(g.out()).not.toContain('gates/types.ts changed');
   });
 
-  it('logs the selection with the stages, under the merged branch', () => {
-    const r = selected('gates/mid.ts\n');
-    const log = parseObservations(r.g.appended[0][1]);
-    expect(log.find((o) => o.kind === 'selection')).toMatchObject({ ticket: 'origin/ticket/7', sha: HEAD, changed: ['gates/mid.ts'], all: false, reason: '', tests: ['gates/mid.test.ts', 'gates/top.property.test.ts', 'gates/cli.integration.test.ts'] });
-  });
-
-
-  it('logs its stages under the merged branch when the run names no ticket', () => {
-    const g = fake();
-    selfGate(MERGE, ENV, g.io);
-    expect(parseObservations(g.appended[0][1]).every((r) => r.ticket === 'origin/ticket/7')).toBe(true);
-    const h = fake();
-    selfGate(MERGE, { ...ENV, WORKFLOW_TICKET: '31' }, h.io);
-    expect(parseObservations(h.appended[0][1]).every((r) => r.ticket === '31')).toBe(true);
-  });
 });
 
 describe('selfGate — stage times', () => {
-  it('appends one gate observation per stage with its ms and verdict, the unit stage with the slowest test files', () => {
-    const g = fake({ exits: { onkel: 1 } });
-    selfGate(['--base', 'base1'], ENV, g.io);
-    expect(g.appended.map(([path]) => path)).toEqual([join('/state', 'logs', 'observations.jsonl')]);
-    const records = parseObservations(g.appended[0][1]);
-    expect(records.map((r) => r.kind === 'gate' && [r.gate, r.verdict, r.ms, r.sha])).toEqual([
-      ['self-gate-typecheck', 'pass', 1500, HEAD],
-      ['self-gate-unit', 'pass', 1500, HEAD],
-      ['self-gate-locks', 'pass', 1500, HEAD],
-      ['self-gate-onkel', 'fail', 1500, HEAD],
-    ]);
-    expect(records[1]).toMatchObject({ project: 'workflow', slowest: [{ file: 'scripts/slow.test.ts', ms: 4000 }, { file: 'scripts/fast.test.ts', ms: 100 }] });
-    expect(records[0]).not.toHaveProperty('slowest');
-  });
-
-  it('logs no ticket outside a merge when the run names none, and no sha when git cannot read HEAD', () => {
-    const g = fake({ failing: ['rev-parse HEAD'] });
-    selfGate(['--base', 'base1'], {}, g.io);
-    expect(parseObservations(g.appended[0][1]).map((r) => [r.ticket, r.kind === 'gate' && r.sha])).toEqual([
-      ['', ''],
-      ['', ''],
-      ['', ''],
-      ['', ''],
-    ]);
-  });
-
-  it("logs to this repo's state folder when the run names none", () => {
-    const g = fake();
-    selfGate(['--base', 'base1'], {}, g.io);
-    expect(g.appended[0][0]).toBe(join(ROOT, 'state', 'logs', 'observations.jsonl'));
-  });
 
   it("prints each stage's verdict and time, the total, onkel's kills, Stryker's timeouts and the slowest test files", () => {
     const g = fake();
@@ -425,7 +372,7 @@ describe('selfGate — stage times', () => {
         'Self-gate:',
         '  pass  typecheck  1.5 s',
         '  pass  unit tests  1.5 s',
-        '  pass  locked files  1.5 s',
+        '  pass  canary (every gate still bites)  1.5 s',
         '  pass  onkel on 1 file(s)  1.5 s',
         '  total  6.0 s',
         'onkel: 7/7 mutants killed, highest CRAP 4',
@@ -442,7 +389,7 @@ describe('selfGate — stage times', () => {
     const g = fake({ changed: 'docs/x.md\n' });
     selfGate(['--base', 'base1'], ENV, g.io);
     expect(g.out()).toBe(
-      ['', 'Self-gate:', '  pass  typecheck  1.5 s', '  pass  unit tests  1.5 s', '  pass  locked files  1.5 s', '  total  4.5 s', 'Slowest test files:', '  4.0 s  scripts/slow.test.ts', '  0.1 s  scripts/fast.test.ts', ''].join('\n'),
+      ['', 'Self-gate:', '  pass  typecheck  1.5 s', '  pass  unit tests  1.5 s', '  pass  canary (every gate still bites)  1.5 s', '  total  4.5 s', 'Slowest test files:', '  4.0 s  scripts/slow.test.ts', '  0.1 s  scripts/fast.test.ts', ''].join('\n'),
     );
   });
 
@@ -497,7 +444,6 @@ describe('selfGate --merge — the sast stage (ticket 60)', () => {
   const MERGE = ['--base', 'base1', '--merge', 'origin/ticket/7'];
   const finding = { rule: 'javascript.lang.security.detect-child-process', severity: 'ERROR', file: 'scripts/a.ts', line: 3, message: 'child process' };
   const result = { gate: 'sast', pass: false, scanned: ['scripts/a.ts'], findings: [finding], warnings: [{ ...finding, severity: 'WARNING', line: 8 }], suppressed: [] };
-  const records = (g: ReturnType<typeof fake>) => parseObservations(g.appended.map(([, text]) => text).join(''));
 
   it('runs Semgrep on the changes since the base, before onkel, writing its JSON to the run folder', () => {
     const g = fake();
@@ -509,29 +455,20 @@ describe('selfGate --merge — the sast stage (ticket 60)', () => {
     const g = fake({ sastJson: JSON.stringify(result) });
     selfGate(['--base', 'base1'], ENV, g.io);
     expect(g.ran.map((s) => s.id)).not.toContain('sast');
-    expect(records(g).filter((r) => r.kind === 'finding')).toEqual([]);
   });
 
-  it('fails the gate on a blocking finding, names it in the summary, and logs each finding as a sast observation', () => {
+  it('fails the gate on a blocking finding and names it in the summary', () => {
     const g = fake({ sastJson: JSON.stringify(result), exits: { sast: 1 } });
     expect(selfGate(MERGE, ENV, g.io)).toBe(1);
     expect(g.out()).toContain('  FAIL  sast (Semgrep security rules on the changed files)');
     expect(g.out()).toContain('sast: BLOCKING scripts/a.ts:3 javascript.lang.security.detect-child-process (ERROR): child process');
     expect(g.out()).toContain('sast: reported scripts/a.ts:8 javascript.lang.security.detect-child-process (WARNING): child process');
-    const found = records(g).filter((r) => r.kind === 'finding');
-    expect(found.map((r) => [r.kind === 'finding' && r.source, r.kind === 'finding' && r.fate, r.kind === 'finding' && r.line])).toEqual([
-      ['sast', 'blocking', 3],
-      ['sast', 'reported', 8],
-    ]);
-    expect(found[0]).toMatchObject({ project: 'workflow', ticket: 'origin/ticket/7', sha: HEAD, gate: 'sast' });
-    expect(records(g).some((r) => r.kind === 'gate' && r.gate === 'self-gate-sast' && r.verdict === 'fail')).toBe(true);
   });
 
-  it('says why when Semgrep could not run, and logs no findings', () => {
+  it('says why when Semgrep could not run', () => {
     const g = fake({ sastJson: JSON.stringify({ gate: 'sast', pass: false, error: 'Semgrep is not installed' }), exits: { sast: 2 } });
     expect(selfGate(MERGE, ENV, g.io)).toBe(2);
     expect(g.out()).toContain('sast: could not run: Semgrep is not installed');
-    expect(records(g).filter((r) => r.kind === 'finding')).toEqual([]);
   });
 
   it('reads no sast result that is missing or not the sast gate\'s', () => {
@@ -539,20 +476,17 @@ describe('selfGate --merge — the sast stage (ticket 60)', () => {
       const g = fake({ sastJson });
       selfGate(MERGE, ENV, g.io);
       expect(g.out()).not.toContain('sast:');
-      expect(records(g).filter((r) => r.kind === 'finding')).toEqual([]);
-    }
+      }
   });
 });
 
 describe('selfGate --merge — the repo merge check config/runner.json names (ticket 83)', () => {
   const MERGE = ['--base', 'base1', '--merge', 'origin/ticket/7'];
-  const record = (b: ObservationBase): Observation => ({ ...b, kind: 'gate', gate: 'merge-check', sha: TIP, verdict: 'pass' as const, reasons: [], ms: 0 });
   const asked: string[][] = [];
   const check = (refused: boolean): MergeCheck => (branch, base, git) => {
     asked.push([branch, base, String(git(['rev-parse', 'HEAD']))]);
-    return { lines: refused ? ['Merge refused: not chosen.', ''] : [], refused, records: (b) => [record(b)] };
+    return { lines: refused ? ['Merge refused: not chosen.', ''] : [], refused };
   };
-  const checked = (g: ReturnType<typeof fake>) => g.appended.flatMap(([, text]) => parseObservations(text)).filter((o) => o.kind === 'gate' && o.gate === 'merge-check');
 
   it('asks it with the branch, the base and git; a refusal is printed first and fails the gate, which still runs', () => {
     asked.length = 0;
@@ -561,36 +495,25 @@ describe('selfGate --merge — the repo merge check config/runner.json names (ti
     expect(asked).toEqual([['origin/ticket/7', 'base1', `${HEAD}\n`]]);
     expect(g.err()).toBe('Merge refused: not chosen.\n');
     expect(g.ran.map((s) => s.id)).toContain('onkel');
-    expect(checked(g)).toEqual([]);
   });
 
   it('keeps a gate that could not run at 2 when the merge is also refused', () => {
     expect(selfGate(MERGE, ENV, fake({ check: check(true), exits: { typecheck: null } }).io)).toBe(2);
   });
 
-  it("logs the records of a merge it passes in the run's state folder", () => {
+  it('passes a merge the check passes, printing nothing', () => {
     const g = fake({ check: check(false) });
     expect(selfGate(MERGE, ENV, g.io)).toBe(0);
     expect(g.err()).toBe('');
-    expect(checked(g)).toEqual([record({ at: '2026-10-04T12:00:00.000Z', run: '', project: 'workflow', ticket: '', role: '' })]);
-    expect(g.appended.filter(([, text]) => text.includes('merge-check')).map(([path]) => path)).toEqual([join('/state', 'logs', 'observations.jsonl')]);
   });
 
-  it('logs nothing when the gate is red, and asks nothing outside merge mode or without a check', () => {
+  it('keeps a red gate red under a passing check, and asks nothing outside merge mode or without a check', () => {
     const red = fake({ check: check(false), exits: { unit: 1 } });
     expect(selfGate(MERGE, ENV, red.io)).toBe(1);
-    expect(checked(red)).toEqual([]);
-    expect(red.appended).toHaveLength(1);
     asked.length = 0;
     selfGate(['--base', 'base1'], ENV, fake({ check: check(true) }).io);
     expect(asked).toEqual([]);
     expect(selfGate(MERGE, ENV, fake().io)).toBe(0);
-  });
-
-  it("logs under the configured state folder when the run names none", () => {
-    const g = fake({ check: check(false), config: JSON.stringify({ ...SETTINGS, stateDir: 'runs' }) });
-    selfGate(MERGE, {}, g.io);
-    expect(g.appended.filter(([, text]) => text.includes('merge-check')).map(([path]) => path)).toEqual([join(ROOT, 'runs', 'logs', 'observations.jsonl')]);
   });
 
   it('cannot run when the check could not be loaded, saying why', () => {

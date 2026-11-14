@@ -161,7 +161,9 @@ describe('the load rule holds over the whole repo', () => {
     // The helpers that spawn count for the tests that call them (this repo's fake gh, the merge gate's repo).
     expect(helpers.length).toBeGreaterThan(0);
     const files = ['gates', 'adapters', 'scripts', 'dispatcher', 'briefing', 'watchers', 'test', 'skills', 'runner'].filter((d) => existsSync(join(ROOT, d))).flatMap((d) => testFiles(join(ROOT, d), (n) => n.endsWith('.test.ts')));
-    expect(files.filter((f) => spawns(rel(f), readFileSync(f, 'utf8'))).length).toBeGreaterThan(30);
+    // Sanity floor shared by this repo and Blueprint A, which has 29 spawning files after ticket 95.
+    // Every discovered file still goes through the timeout rule below.
+    expect(files.filter((f) => spawns(rel(f), readFileSync(f, 'utf8'))).length).toBeGreaterThan(20);
     const config = integrationConfig.test!;
     const integration = { test: config.testTimeout, hook: config.hookTimeout };
     expect(integration.test).toBeGreaterThanOrEqual(60_000);

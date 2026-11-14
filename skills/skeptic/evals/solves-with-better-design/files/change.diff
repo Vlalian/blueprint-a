@@ -1,0 +1,40 @@
+diff --git a/src/cart.ts b/src/cart.ts
+--- a/src/cart.ts
++++ b/src/cart.ts
+@@ -3,6 +3,14 @@ export type Item = { id: string; quantity: number };
+ export class Cart {
+   items: Item[] = [];
+-  add(item: Item) { this.items.push(item); }
+-  remove(id: string) { this.items = this.items.filter((i) => i.id !== id); }
++  count = 0;
++  add(item: Item) {
++    this.items.push(item);
++    this.count += item.quantity;
++  }
++  remove(id: string) {
++    const gone = this.items.filter((i) => i.id === id);
++    this.items = this.items.filter((i) => i.id !== id);
++    this.count -= gone.reduce((n, i) => n + i.quantity, 0);
++  }
+ }
+diff --git a/src/cart.test.ts b/src/cart.test.ts
+--- /dev/null
++++ b/src/cart.test.ts
+@@ -0,0 +1,17 @@
++import { expect, it } from 'vitest';
++import { Cart } from './cart';
++
++it('starts at zero', () => {
++  expect(new Cart().count).toBe(0);
++});
++it('adds the quantity', () => {
++  const c = new Cart();
++  c.add({ id: 'a', quantity: 2 });
++  expect(c.count).toBe(2);
++});
++it('removes the quantity', () => {
++  const c = new Cart();
++  c.add({ id: 'a', quantity: 2 });
++  c.remove('a');
++  expect(c.count).toBe(0);
++});

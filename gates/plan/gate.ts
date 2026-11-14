@@ -4,7 +4,7 @@
 
 import { join } from 'node:path';
 import type { GateResult } from '../lib/contract.ts';
-import { claimFindings, factFindings } from '../research/facts.ts';
+import { claimFindings, factFindings } from '../lib/research-facts.ts';
 import { bugPlanFindings } from './bug.ts';
 import { commandFindings, commandsIn, DEFAULT_ALLOW } from './commands.ts';
 import { crossArtifact, ticketCriteria } from './cross-artifact.ts';

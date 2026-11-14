@@ -1,0 +1,7 @@
+export type Item = { id: string; quantity: number };
+
+export class Cart {
+  items: Item[] = [];
+  add(item: Item) { this.items.push(item); }
+  remove(id: string) { this.items = this.items.filter((i) => i.id !== id); }
+}

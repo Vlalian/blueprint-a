@@ -45,13 +45,12 @@ describe('the fast merge gate on a real merge (ticket 31)', () => {
     expect(r.mutated).toEqual([['scripts/lib.ts:2-7']]);
   }, SPAWNS);
 
-  it('logs each stage with its ms, and lists the slowest test files', () => {
+  it('prints each stage with its time, and lists the slowest test files', () => {
     startMerge('integration-clean', 'ticket/7');
     const r = gate(['--base', 'HEAD', '--merge', 'origin/ticket/7']);
     expect(r.out).toContain('  pass  unit tests (with coverage)  1.0 s');
     expect(r.out).toContain('Slowest test files:\n  0.0 s  scripts/lib.test.ts');
-    const log = readFileSync(join(where().dir, 'state', 'logs', 'observations.jsonl'), 'utf8');
-    expect(log).toContain('"gate":"self-gate-onkel"');
+    expect(r.out).toMatch(/onkel on \d+ file\(s\)/);
   }, SPAWNS);
 });
 

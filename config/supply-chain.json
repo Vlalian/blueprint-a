@@ -1,6 +1,7 @@
 {
   "$comment": "The supply-chain gate's exceptions (gates/supply-chain, F4) for this package's own dev tools: a licence off the gate's allowlist, or an install script, each with why it is accepted. A project keeps its own list here; the gate reads it unless --allowlist names another file.",
   "licenceExceptions": {
+    "graceful-fs": "BlueOak-1.0.0: a permissive licence (Blue Oak Model License), accepted for this filesystem utility in the test toolchain",
     "caniuse-lite": "CC-BY-4.0: browser-support data, no code; pulled in by the test toolchain only",
     "lightningcss*": "MPL-2.0: file-level copyleft, used unmodified as a build tool by vitest; never shipped",
     "glob": "BlueOak-1.0.0: a permissive licence (Blue Oak Model License), not yet on the SPDX allowlist above",

@@ -1,0 +1,7 @@
+.gitignore
+package.json
+scripts/lint.mjs
+src/is-even.ts
+tests/protected/is-even.test.ts
+tsconfig.json
+vitest.config.ts

@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: one-ticket-boundary-bug
+expected_outcome: |
+  One Spec finding (HIGH or MEDIUM) at src/discount.ts line 4: a total of exactly 100 gets no discount
+  (`>` where the ticket says "100 or more"), quoting the Pass when line, with ticket "12". No finding for the
+  missing semicolon or the comment. Output is the review JSON object only.
+context:
+  scaffold_script: place-files.sh

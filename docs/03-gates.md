@@ -5,8 +5,7 @@ harness. Field names are suggestions; what matters is that they are fixed and do
 
 ## The shared contracts
 
-There are two: one for a gate run as a command-line program, one for a gate run as a harness
-hook. A gate's deciding logic can serve both; each entry point keeps its own contract.
+The router runs the gate commands after each role returns. No harness hooks are shipped.
 
 **A command-line gate** (every `gates/<folder>/cli.ts`, and the gates a pipeline or CI runs):
 
@@ -19,18 +18,6 @@ hook. A gate's deciding logic can serve both; each entry point keeps its own con
 | **0** | Pass |
 | **1** | Fail: the gate ran and found a violation |
 | **2** | Could not run: usage error, missing input, tool crash, timeout. **Never a pass** |
-
-**A hook** (the pre-tool gates in section A and the stop gate, run by the agent harness on its
-events) speaks the harness's protocol instead, which in the reference build (Claude Code) is:
-
-| Outcome | What the hook does |
-|---|---|
-| Allow | Exit **0** and print **nothing**, so a passing hook costs no context |
-| Block | Exit **2** with the reason on **stderr**, which the harness shows the agent |
-| Could not run (unreadable input, a crash) | **Block**, as above. A harness reads any other exit, 1 included, as "go ahead", so a hook that fails must never exit 1 |
-
-A hook prints no JSON. A harness that cannot run hooks calls the gate's command-line form
-before each action instead (`gates/git-guard` is A1 in that form).
 
 Implementation pattern: wrap the whole gate body in a single "fail closed" handler, so any
 exception becomes `{gate, pass: false, error}` with exit 2. Keep the deciding logic in a pure
@@ -53,10 +40,6 @@ test. They need Node only (TypeScript runs as is) and no particular agent harnes
 
 | Contract | Folder | What it needs |
 |---|---|---|
-| A1 Dangerous version-control commands | `gates/git-guard` | A command line and the checked-out branch |
-| A2 Protected files, the backstop | `gates/tamper` | git and `config/tamper.json` (the protected globs, the owner, the hook files to fingerprint, an optional exception module) |
-| A8 Owner consent | `gates/consent` | git and `config/consent.json` (the owner's name and the ticket folder); see [10-agents-md.md](10-agents-md.md) |
-| A9 Locked files | `gates/locks` | git, the lock list (`config/locks.json` or the default) and its manifest `config/locks.lock` |
 | C1 Four checks | `gates/four-checks` | The project's lint, typecheck, test and build commands |
 | C1 Skipped tests are not green | `gates/four-checks/skips-cli.ts` | git and the test command's JSON report (vitest) |
 | C2 Secret scan | `gates/secret-scan` | git |
@@ -71,14 +54,9 @@ test. They need Node only (TypeScript runs as is) and no particular agent harnes
 | D3 CRAP and mutation, scoped to changed lines (vitest projects) | `gates/onkel`; `gates/hardener/gate.ts` runs it on a change | Stryker and vitest |
 | D5 Canary | `gates/canary` | vitest; the folders to search in `config/canary.json` (default `gates` and `adapters`) |
 | E1 Plan gate | `gates/plan` | The plan and ticket files |
-| E2 Handoff gate | `gates/handoff` | git |
-| E3 Review schema | `gates/review-schema` (the skeptic check in `skeptic.ts`) | The reviewer's output file and exit code |
-| E4 Tool licence check | `gates/licence` | npm (`npm view`) |
-| E5 Prose lint (library) | `gates/slop-lint/lint.ts` | Nothing; call `lintProse(text)` from a harness or a test |
 | F1 CI green on the exact commit | `gates/ci-on-sha/gate.ts` with `adapters/host` | The host: GitHub through the `gh` CLI, or Azure DevOps through its REST API and a personal access token in `AZURE_DEVOPS_PAT` |
-| SonarQube's quality gate on the exact commit | `gates/sonarqube/gate.ts` with `adapters/sonarqube` | A SonarQube server (Developer Edition or above for pull requests) and a user token in `SONAR_TOKEN`; see [09-sonarqube.md](09-sonarqube.md) |
 | F4 Supply-chain scan | `gates/supply-chain` | git, an npm lockfile (v2 or v3) and the exceptions in `config/supply-chain.json` |
-| F5 Walk gate | `gates/walk` with `gates/evidence` | The walk report and its media, and the app's own Playwright; see [08-previews-kubernetes.md](08-previews-kubernetes.md) |
+| F5 Walk gate | `gates/walk` with `gates/evidence` | The walk report, its media and the exact head and patch-id; see [08-previews-kubernetes.md](08-previews-kubernetes.md) |
 
 `gates/test-strength` reads only an **adapter interface** with three calls:
 `coverage(paths)` gives each function's lines and how many the tests ran, `complexity(paths)`
@@ -88,142 +66,12 @@ judge; the adapter measures. A new language needs a new adapter, not a new gate:
 
 ---
 
-## A. Pre-tool gates (refuse an action before it happens)
+## Role completion
 
-These run on the harness's **pre-tool event**: before a shell command, file write or edit
-executes. The hook program reads the event payload, and either stays silent (allow) or prints a
-reason and signals "block" (exit 2 in the reference build). Allow must be silent, so passing
-hooks cost no context.
-
-### A1. Dangerous version-control commands
-- **Purpose:** stop history-destroying or check-skipping commands.
-- **Input:** the command an agent is about to run.
-- **Fails on:** force push (including `+refspec` and mirror pushes), deleting a remote branch,
-  pushing everything, pushing to the main branch, skipping commit hooks (`--no-verify`, the
-  short commit flag), hard reset, forced clean, forced branch delete, whole-tree checkout or
-  restore, changing the hooks path, defining command aliases, merging or marking ready a pull
-  request through the hosting CLI or its API. A push is an allow-list: only
-  `git push [-u|--set-upstream] [<remote> [<branch>[:<branch>]]]` for the checked-out branch, with no
-  other option and no git option before `push`; any other form is refused, since the guard cannot
-  read where it goes. The repository's push config (mirror, push refspecs, `push.default`) still counts.
-- **Must parse the shell**, not grep the string: see through `env`, `sudo`, `sh -c`, `eval`,
-  PowerShell `-Command` / encoded commands, `cmd /c`, subshells and command substitution,
-  clustered flags and option abbreviations.
-- **Prove it bites:** feed the payload for a push with the hook-skipping flag → block.
-
-### A2. Protected files (authority tier 4)
-- **Purpose:** agents cannot edit what the human owns.
-- **Input:** the target path of a write or edit, or the write targets of a shell command
-  (redirections, copy and move targets, in-place editors).
-- **Fails on:** any path matching the tier-4 list from the tiers config (decision records,
-  project context, standing directives, the tiers file), plus version-control hook folders and
-  config. Normalise paths first (relative vs absolute, Windows and POSIX spellings).
-- **Prove it bites:** payload editing a directives file → block.
-- **Backstop as code (`gates/tamper`):** a pre-tool hook cannot see what an interpreter writes
-  (`node -e "fs.writeFileSync('CONTEXT.md', '')"`), so this gate checks the result instead.
-  - **Input:** `--base <ref>` (the working tree, untracked files included, against the commit
-    before the role) or `--staged` (the index against HEAD, for a pre-commit hook); `--hooks`, the
-    fingerprint of the hook files taken at the base; `config/tamper.json` beside the gates or
-    `--config <file>`: `protectedPaths` (globs) or `tiers` (a tiers file whose `tier4.protectedPaths`
-    it reads), `owner`, `hooks` (the files or folders to fingerprint, relative to the repo; git's
-    hooks folder and `core.hooksPath` when it names none) and `exceptions` (a module, relative to
-    the config file, exporting `tamperException(path, ctx)`); `--state` is handed to that module.
-    `protectedPaths` and `tiers` together protect both lists. A config inside the repo under check
-    is read at the base (HEAD with `--staged`), with its tiers file, its exception module and every
-    repo file that module imports, so editing them never changes the policy; the config, its tiers
-    file and its exception module are protected without being listed. That module imports only
-    plain relative paths (`./x.mjs`, `../y.mjs`) and `node:` builtins. The exception module is
-    trusted owner code, not sandboxed: the gate cannot run (exit 2) when it or any file it imports
-    uses `require`, `createRequire`, a dynamic `import()`, `node:fs`, `process.binding`, `eval` or
-    `new Function`, since each reaches the work tree around the base. List the canary's
-    `config/canary.json` in `protectedPaths` too, or an agent can shrink what the canary reruns.
-  - **Output:** `{gate, pass, base, problems}`.
-  - **Fails when:** a protected path differs from the base and the exception module does not let
-    it through, or the hook files or `core.hooksPath` differ from the fingerprint (in `--staged`
-    mode the pre-commit hook itself is left out, since it cannot hold its own fingerprint). There
-    is no skip switch. A missing or malformed config, a module without `tamperException`, or a
-    module that imports any other form (a query, a fragment, an absolute path, a URL, a package, a
-    path out of the repo, a file the base does not hold) is exit 2, naming the import.
-  - **Prove it bites:** an interpreter writes a protected file → exit 1; restored → exit 0. Also a
-    new git hook, a changed configured hook file, and `core.hooksPath` set; and a protected-file
-    edit made alongside an emptied config, an allow-all exception module or an allow-all file that
-    module imports → still exit 1.
-
-### A3. Config protection
-- **Purpose:** "fix the code, not the config": agents cannot weaken lint or format rules.
-- **Fails on:** an edit to an **existing** linter or formatter config or its ignore file.
-- **Prove it bites:** payload editing the lint config → block.
-
-### A4. Fail closed on bad input
-- **Purpose:** a hook that cannot read its input must not allow.
-- **Fails on:** payload larger than the hook can inspect (512 KB in the reference build), not
-  valid JSON, a field of the wrong type, or any crash.
-- **Prove it bites:** a truncated payload → block.
-
-### A5. Loop guard
-- **Purpose:** stop an agent repeating itself.
-- **Input:** each tool call (tool plus input), counted per ticket in a state file.
-- **Fails on:** the Nth identical consecutive call (N = 5 in the reference build). It writes an
-  escalation record and blocks that and every later call on the ticket.
-- **Prove it bites:** send the same payload N times → the Nth is blocked.
-
-### A6. External tool health (optional)
-- **Purpose:** block calls to an external tool server that is known to be down, so the agent
-  falls back instead of hanging.
-- **Fails on:** a server whose probe failed recently (healthy results cached briefly; unhealthy
-  ones backed off exponentially).
-
-### A7. Human-only commands
-- **Purpose:** some commands (review start, merge) may only be invoked by the human.
-- **How:** use the harness's own mechanism to stop the model invoking them, if it has one.
-  Otherwise, treat it as an open question.
-
-### A8. Owner consent
-- **Purpose:** only the owner chooses how the guarded code changes; an agent cannot make its own
-  ticket buildable or change a locked path on its own say-so.
-- **Input:** the change (staged, or the working tree against a base ref), the branch, the owner's
-  name and the ticket folder (`config/consent.json`), and the locked paths (A9's list).
-- **Fails on:** a ticket put in a buildable status (`needs-triage`, `ready-for-agent`, `planned`,
-  `claimed`, `ready-for-review`) whose header has no `Agreed: <date> (...)` line quoting the owner
-  (`(<owner>: "...")`) or naming an improvement the owner accepted; a change to a locked path on any
-  branch but `ticket/<id>-<name>` whose ticket has that line. A ticket that already stood in a
-  buildable status may still be edited otherwise.
-- **As code:** `gates/consent`. The deciding core (`core.ts`) has no imports, so a harness hook can
-  load it on every edit; the command-line form (`cli.ts --staged` or `--base <ref>`) runs in any
-  pre-commit hook or CI step.
-- **Prove it bites:** stage a `package.json` edit on the main branch → fail; the same edit on the
-  branch of an agreed ticket → pass.
-
-### A9. Locked files
-- **Purpose:** the files that decide what "green" means (the gates, their config, CI, build and
-  test config, the rules file) change only with the owner's consent, byte for byte.
-- **Input:** the lock list (`config/locks.json`, a JSON list of path globs; without one a default
-  for a JS/TS or .NET repository), the manifest `config/locks.lock` (each locked file's SHA-256),
-  the branch, and A8's consent config.
-- **Fails on:** any locked file added, deleted or changed against the manifest, a line-ending change
-  included, unless the branch builds a ticket the owner agreed (A8). `--relock` rewrites the manifest;
-  run it as the last step of an agreed ticket and commit it.
-- **As code:** `gates/locks` (`cli.ts [--staged] [--branch <name>] [--relock]`). It checks only the
-  repository its own files sit in.
-- **Prove it bites:** change a locked file on the main branch → fail, naming the file.
-
----
-
-## B. Stop gate (refuse "I am done")
-
-Runs on the harness's **stop event**: when an agent declares it is finished.
-
-- **Purpose:** an agent cannot finish with red checks.
-- **Input:** the role's configured list of gate commands (see the role table in
-  [02-flow-and-roles.md](02-flow-and-roles.md)), run in the role's working copy.
-- **Output on red:** a block decision with the failures as the reason, fed back to the agent so
-  it can fix them. A counter per ticket and role is incremented.
-- **Escalation:** after **2** blocked stops, the next red stop (or any gate error, such as missing
-  config) writes an escalation record `{ticket, reason, blocks, at}` and lets the stop through,
-  so the controller can route the ticket back to `planned` with a report.
-- **Prove it bites:** make a test fail, trigger a stop → block; twice more → escalation record.
-
----
+The router runs each role's configured checks itself. A nonzero exit, missing command or crash
+is red. The first red returns to a fresh role; a second red stops that ticket for the owner.
+The consolidated checks run on the finished head before independent review and walk.
+See [02-flow-and-roles.md](02-flow-and-roles.md).
 
 ## C. Code checks
 
@@ -356,8 +204,7 @@ Runs on the harness's **stop event**: when an agent declares it is finished.
   `*bites.integration.test.ts` there runs in its own vitest process. Each check reports its three
   exit codes through `WORKFLOW_CANARY_REPORT`; a test that reports none is judged by its exit code.
   With `--state <folder>` each gate's state (`green`, `red`, `could-not-run`) is appended to
-  `<folder>/logs/observations.jsonl`. The canary has no base to read `config/canary.json` from, so
-  the tamper gate guards it: list it in `config/tamper.json`'s `protectedPaths`.
+  `<folder>/logs/observations.jsonl`.
 - **Output:** `{gate, pass, gates: [{gate, file, state, detail}]}`.
 - **Fails when:** a check's injected run did not exit 1, its clean or reverted run did not exit 0,
   or a bites test failed. No bites test at all, or one that could not run, is exit 2.
@@ -386,71 +233,6 @@ Runs on the harness's **stop event**: when an agent declares it is finished.
     commands, with no shell chaining, pipes, redirection or substitution.
 - **Prove it bites:** start from a known-good plan and ticket; break one thing per test.
 
-### E2. Handoff gate
-- **Purpose:** handoffs between roles are machine-valid; agents never write the final file.
-- **Input:** a handoff draft (a few header lines), the sending role, the known roles, an outbox.
-- **Output:** `{gate, pass, errors: [...], file?}`; on pass the gate writes the canonical file
-  (sender, id, timestamps, full commit hash generated by the gate).
-- **Fails when:** type is not `git_handoff` (needs recipient, priority, task, commit), `note`
-  (needs recipient, priority, message) or `research_request` (needs priority and question);
-  reserved headers are present; priority is not two digits; a recipient is unknown or is the
-  sender; the task name is not kebab-case or exceeds 40 characters; the commit is not 7 to 40 hex
-  characters or does not resolve to exactly one commit; the note exceeds 80 characters or contains
-  control characters.
-- **`research_request`:** a role that needs a fact asks for it rather than starting a research
-  agent itself. The request names no recipient (one with `to` fails): the gate always addresses it
-  to the controller, which runs the researcher. Its `question` is one line of at most 200
-  characters with no control characters; the canonical file carries it as a `question` header and
-  as the body line `research: <question>`.
-- **Exit 2:** not a repository, corrupt sequence state, or the output file already exists (never
-  overwrite; claim sequence numbers exclusively).
-- **Prove it bites:** an 81-character note; an ambiguous commit abbreviation.
-
-### E3. Review schema (fail closed)
-- **Purpose:** a reviewer's output is only usable if it matches a strict shape.
-- **Input:** the reviewer's output file and its exit code.
-- **Shape:** exactly `{findings: [Finding]}` where each finding has, all required and non-empty,
-  no extra keys: `file`, `line` (integer ≥ 1), `severity` (`HIGH` | `MEDIUM` | `LOW`), `axis`
-  (`standards` | `spec`), `claim`, `scenario`, `fix`, `ticket`. One JSON code fence around the
-  whole output is tolerated; prose around it is not.
-- **Output:** `{gate, pass, findings, errors}`.
-- **Fails when:** the reviewer exited non-zero, output is missing or empty, not JSON, or the wrong
-  shape. Bad arguments are exit 2.
-- **Skeptic check:** `{refuted: boolean, evidence: string}`; anything unreadable = not refuted.
-- **Prove it bites:** a finding with no fields → exit 1; the valid review again → exit 0.
-
-### E4. Tool licence check
-- **Purpose:** before installing a tool, confirm it is the package you meant and its licence is
-  acceptable (a real case: two tools shared a name).
-- **Input:** package name plus a substring its repository address must contain.
-- **Output:** `{gate, pass, packages: [{name, license, repository}], findings}`.
-- **Fails when:** no licence, a licence not on the allow list (permissive licences such as MIT,
-  ISC, Apache-2.0, BSD variants; an `OR` expression passes if either side is allowed), or the
-  repository does not match. Validate the name before it reaches a shell. The registry is read
-  with `npm view`; a name that is not an npm package name is exit 2.
-- **Prove it bites:** the package's licence reads GPL-3.0 → exit 1; MIT again → exit 0.
-
-### E5. Prose lint (library, optional)
-- **Purpose:** the mechanical part of keeping generated reports readable.
-- **Input:** a Markdown text; code blocks and inline code are skipped. `lintProse(text)` returns
-  the findings `[{kind, line, match}]`; it has no command line, so a harness decides where it runs.
-- **Fails on:** a list of banned filler words and stock phrases, emoji in headings, "not X, but
-  Y" contrasts, and too many long dashes (any in a text under 300 characters, more than two in a
-  longer one).
-- **Prove it bites:** add a banned word to plain prose → a finding; remove it → none.
-
-### E6. Export package check
-- **Purpose:** a folder leaving the repository (like this package) holds nothing private.
-- **Input:** a folder and a rules file (a deny list of private names, a list of private
-  repository owners or slugs).
-- **Output:** `{gate, pass, dir, files, findings: [{file, line, kind, detail}]}`.
-- **Fails on:** secrets (as C2), hidden Unicode (as C3), personal home-folder paths on Windows,
-  Linux or macOS, email addresses, deny-listed names as whole words in any case, and links to
-  private repositories. An empty folder is exit 2.
-- **Prove it bites:** add a file containing a deny-listed name (built at runtime in the test).
-
----
-
 ## F. Release and supply chain
 
 ### F1. CI green on the exact commit
@@ -466,18 +248,6 @@ Runs on the harness's **stop event**: when an agent declares it is finished.
   DevOps reads the newest pipeline run of each pipeline on the commit. Both map to the same
   verdict: green is `VERIFIED`, failing `FAILED`, pending or nothing reported `NOT-VERIFIED`.
 
-### F2. Verdict ledger
-- **Purpose:** a verdict belongs to one exact commit.
-- **Rule:** verdicts are stored per commit hash, with a fixed set of verdict values. A new commit
-  is `NOT-VERIFIED`; a commit whose patch identity is unchanged (for example after a rebase) keeps
-  its verdict.
-
-### F3. Pull request state machine
-- **Purpose:** watch a pull request until it is ready, with typed outcomes.
-- **Exit codes in the reference build:** 0 ready, 2 merge conflict, 3 unresolved review threads,
-  4 CI failing, 5 timeout, 6 merge gate not met. (This is the one place where codes above 2 are
-  used, because each outcome needs a different response.)
-
 ### F4. Supply-chain scan
 - **Purpose:** every new or changed dependency in the lockfile has an allowed licence (or a
   written exception), and may run an install script only if allow-listed.
@@ -492,33 +262,23 @@ Runs on the harness's **stop event**: when an agent declares it is finished.
 - **Prove it bites:** a new package with an install script and no entry → exit 1; removed → exit 0.
 
 ### F5. Walk gate
-- **Purpose:** the hard gate after an agent walked a deployed preview of the app: what it says it
-  saw is cited, bound to the commit being judged, complete, and the pinned specs agree.
-- **Input:** the walk report (`gates/evidence/walk-report.ts` gives its shape: every item cited by
-  a screenshot or a video timestamp, the media saved), `--head` and `--patch-id` of the change, the
-  expected criteria and QA items, the pinned specs, the app's own Playwright CLI and the base URL.
+- **Purpose:** check that a preview walk is cited, complete and bound to the head being judged.
+- **Input:** a walk report and saved media, `--head`, `--patch-id`, and the expected criteria and QA items.
 - **Output:** `{gate, pass, report, problems, flags}`.
-- **Fails when:** the report fails the evidence gate's walk schema, is bound to another head or
-  patch-id, misses an expected item or leaves a criterion not run, has a failed item, or the pinned
-  specs do not re-run green with 2 retries. Flags (flag items, console and page errors, 5xx
-  responses, accessibility findings, quarantined specs) never fail it; they go to the human. An
-  unknown option is exit 2, and a could-not-run blocks too.
-- **Prove it bites:** a cited, bound walk with a green spec → exit 0; the spec red → exit 1.
-
----
+- **Fails when:** evidence is invalid or missing, the head or patch-id differs, an expected item is
+  missing, a criterion is not run, or an item failed. Flagged items go to the owner.
+- **Prove it bites:** a complete bound report passes; change the head or remove a criterion and it fails.
 
 ## Where each gate fires
 
 | Where | Gates |
-|---|---|
-| Pre-tool event | A1 to A6, A8 on a ticket edit |
-| Post-tool event | Formatter on edit; observation log (append-only, silent, no model call) |
-| Stop event | B, running the role's set from C and D (C6 when the project turns it on), A2's tamper backstop |
-| Phase scripts | E1 (planning), D1 (specifier), E2 (every handoff), E3 + skeptic (review), E4 (new tools), F5 (after a walk of the preview) |
-| Version-control pre-commit | C2, C3, A8, A9, A2's tamper backstop (`--staged`), then the project's own checks: **the backstop that works in any harness** |
-| CI | C1, C4, C5, A8, A9; F1 before "ready" |
-| Dispatcher | Preflight, concurrency cap, retries, loop and budget limits, F2, F3, F4 once per run, D5 when it is due |
-| Before export | E6 |
+| --- | --- |
+| Router after each role | The role's configured checks, with red check for specifier and mutation for hardener |
+| Finished build | Consolidated role checks, security scans, independent judges, walk report |
+| Pre-commit | Secret scan, hidden Unicode and the project's checks |
+| CI | Project checks, then CI on the exact head before integration |
+| Self-gate | Typecheck, unit, property, integration when requested, canary, SAST and onkel |
+| Before export | check-package, standalone install, typecheck, unit and integration tests |
 
 ## Gates considered and not adopted
 

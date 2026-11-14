@@ -1,14 +1,15 @@
 // Which of the repo's own files the gates grade, and how onkel is called on them.
 // The owner's rule (2026-10-03): the workflow's gates run on the workflow's own code for every ticket.
 // Ticket 31 adds the merge gate's rules: Stryker's timeouts from a config file, the slowest test
-// files, and one gate observation per stage. Since ticket 83 the source folders, the I/O shells
+// files. Since ticket 83 the source folders, the I/O shells
 // exempt from mutation (they spawn processes and touch the file system; the deciding logic lives in
 // pure modules beside them, which are graded), the folders kept out of Stryker's sandbox (runtime
 // and fixture folders hold junctions and throwaway repos) and the CRAP limit are config/runner.json's.
 
-import type { GateVerdict, Observation, ObservationBase, SlowTestFile } from './observations.ts';
 import type { RunnerConfig } from './runner-config.ts';
-import type { Stage } from './self-gate-run.ts';
+
+/** A test file and how long its tests took. */
+export type SlowTestFile = { file: string; ms: number };
 
 /** The paths a change touched: what `git diff --name-only` printed plus the untracked files. */
 export function changedPaths(diffNames: string, untracked: string): string[] {
@@ -78,19 +79,3 @@ export function slowestTestFiles(json: string | undefined, root: string): SlowTe
 export const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 
 export const slowLines = (slowest: SlowTestFile[]) => (slowest.length === 0 ? [] : ['Slowest test files:', ...slowest.map((s) => `  ${seconds(s.ms)}  ${s.file}`)]);
-
-const VERDICTS: GateVerdict[] = ['pass', 'fail', 'could-not-run'];
-
-/** One gate observation per stage (gate `self-gate-<stage>`, its verdict and ms); the unit stage names the slowest test files. */
-export function stageObservations(base: ObservationBase, sha: string, results: { id: Stage; status: 0 | 1 | 2; ms: number }[], slowest: SlowTestFile[]): Observation[] {
-  return results.map((r) => ({
-    ...base,
-    kind: 'gate',
-    gate: `self-gate-${r.id}`,
-    sha,
-    verdict: VERDICTS[r.status],
-    reasons: [],
-    ms: r.ms,
-    ...(r.id === 'unit' ? { slowest } : {}),
-  }));
-}

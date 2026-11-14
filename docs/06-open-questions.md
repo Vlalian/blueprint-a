@@ -90,9 +90,8 @@ README lists the calls, their sources and what is unverified). Its first live ch
 work. The environment adapter for previews and incidents is code since v0.4 (`adapters/environment`:
 Kubernetes through `kubectl`, optionally Helm, with rollback off unless the project config turns it
 on; [08-previews-kubernetes.md](08-previews-kubernetes.md) maps the rules). Its first live check
-happens at work too. The SonarQube adapter is code since v0.5 (`adapters/sonarqube`, with
-`gates/sonarqube/gate.ts`; see [09-sonarqube.md](09-sonarqube.md)); its edition and server questions
-are in the SonarQube row. The rest are still to design.
+happens at work too. The SonarQube adapter was retired in v1.0.0; any integration with the
+company pipeline is decided at work. The rest are still to design.
 
 | Piece | Reference build | At work | Questions to settle |
 |---|---|---|---|
@@ -102,7 +101,6 @@ are in the SonarQube row. The rest are still to design.
 | Supply-chain scan (F4) | npm lockfile, GitHub | npm and NuGet, possibly an internal feed | Which lockfiles and feeds; is there a company allow list of licences already? |
 | Previews and smoke test | Vercel preview deployments and a Neon database branch per run | Kubernetes | A namespace per branch, or a Helm release per branch in a shared namespace (`mode`)? Who may create a namespace, and does the pipeline annotate it with its branch so cleanup can prove it is the ticket's own? How long does a preview live, and what removes a forgotten one? What is the previews domain, and does it have a wildcard TLS certificate? Where does test data come from instead of a database branch? May an agent hold a kubeconfig at all, and scoped to what? |
 | Incidents (optional) | Hosting and database status | Kubernetes events and the company's monitoring | Which metrics exist for HTTP errors (the app's own, the ingress controller's, a service mesh's, a managed Prometheus or an APM), and how are they labelled per release? Can Prometheus be reached through the API server's service proxy, or does it need its own client? Does production run in the same cluster, as Deployments or Helm releases? Is any automatic rollback acceptable at all (it stays off until the config turns it on), and who is told when one runs? |
-| SonarQube (from v0.5) | the gate on recorded replies; no live SonarQube server | SonarQube judges new code and posts a quality gate on each pull request | Which edition and version does the work server run? Community Build has no branch or pull request analysis, so the gate could only judge the main branch after a merge. Can the pipeline hand the gate the scanner's `ceTaskId` (from `report-task.txt`) for each pull request commit, as the only exact link between a pull request analysis and its commit? Who issues a user token (`SONAR_TOKEN`) with Browse on the project, and may an agent's machine hold one? Is the `branch` parameter of `api/project_analyses/search` (internal in SonarQube's API) answered on the work server? Which quality gate is set on the projects, and is it the "Sonar way"? Are architecture rules (import boundaries) available in the edition, or only as a paid add-on? |
 | Test-strength adapter | JS/TS: Stryker plus vitest, Jest or Karma; .NET: coverlet and Stryker.NET | Angular (JS/TS) and .NET | Does the Angular code use Jest or Karma, and does Karma emit istanbul json for the gate? For .NET: does every test project reference coverlet.collector, may Stryker.NET be a local tool, and does the complexity it counts from compiled branch points match what the team expects? The .NET adapter's last check happens on the real work code. |
 
 ## 8. Questions for the human, not the LLM

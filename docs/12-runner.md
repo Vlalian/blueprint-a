@@ -10,15 +10,12 @@ self-gate, with everything tied to that repo moved into `config/runner.json`.
 
 | Part | Files | What it does |
 |---|---|---|
-| Self-gate | `runner/self-gate.ts`, `self-gate-main.ts`, `self-gate-core.ts`, `self-gate-run.ts` | Typecheck, unit tests, integration tests (with `--integration`), the locked-files gate, then onkel (CRAP and mutation) on the source files changed since the base. Prints each stage's verdict and time, logs one observation per stage |
+| Self-gate | `runner/self-gate.ts`, `self-gate-main.ts`, `self-gate-core.ts`, `self-gate-run.ts` | Typecheck, unit tests, integration tests (with `--integration`), canary, Semgrep and onkel (CRAP and mutation) on the source files changed since the base. Prints each stage's verdict and time |
 | Merge mode | `runner/self-gate.ts --merge <branch>`, `ci-report.ts`, `merge-check.ts` | One unit run with coverage, the selected tests only, Semgrep on the changes (`gates/sast`), and mutation of only the lines the merge itself changed when the branch's CI report can be trusted |
 | CI report | `runner/ci-report.ts` | What a branch's gate run found (base, head, clean tree, verdict, mutants, survivors, highest CRAP), written as `<report.dir>/<report.name>` (by default `<branch>.gate.json`) and committed on the branch |
-| Test selection | `runner/self-gate-select.ts`, `affected-deps.ts`, `selection.ts`, `selection-records.ts` | The tests a change can reach over dependency-cruiser's graph plus the paths tests name at run time; every test when the change touches shared ground or the graph cannot say |
-| Full run | `runner/full-run.ts`, `full-run-main.ts` | The whole suite as the safety net under the selection; a failing test no merge selected is logged as a selection miss |
+| Test selection | `runner/self-gate-select.ts`, `affected-deps.ts` | The tests a change can reach over dependency-cruiser's graph plus the paths tests name at run time; every test when the change touches shared ground or the graph cannot say |
 | Check-tree cache | `runner/runner-checks.ts`, `runner-checks-core.ts` | The project's own checks (`checks`), each reused when it already passed on the same tree, command and env file |
-| Checks | `runner/portability.ts`, `spawn-timeouts.ts`, `check-package.ts`, `install-pre-commit-core.ts`, `lock.ts`, `locks.ts` | Windows portability rules, spawn timeouts in tests, the package check for a folder about to leave the repo, the pre-commit renderer (`adapters/git/pre-commit.template`), the single-writer lock, the lock manifest writer |
-| Function registry | `runner/functions-core.ts`, `function-ledger-core.ts`, `prices-core.ts`, `function-records.ts` | Every function the workflow runs with its log id, and what each costs |
-| Metrics | `runner/gate-metrics-core.ts`, `tempo.ts`, `tempo-records.ts`, `observations.ts`, `sast-records.ts` | Per-gate catches, escapes, false alarms and cost; build and merge times and pacing; the observation log they all read |
+| Checks | `runner/portability.ts`, `spawn-timeouts.ts`, `check-package.ts`, `install-pre-commit-core.ts` | Windows portability rules, spawn timeouts in tests, the package check for a folder about to leave the repo, the pre-commit renderer (`adapters/git/pre-commit.template`) |
 
 ## config/runner.json
 
@@ -39,8 +36,7 @@ the run (exit 2) naming it. Path patterns are a folder ending in `/`, a file nam
 | `mergeCheck` | `""` | A module of the repo whose export `mergeCheck` the merge mode also asks (below) |
 | `exempt` | `[]` | Process shells never mutated, by path; a shell can also declare itself with a line `// @process-shell` in its header |
 | `sandboxIgnore` | `[]` | Folders Stryker's sandbox leaves out |
-| `stateDir` | `state` | Where the logs and the check cache live; `WORKFLOW_STATE_DIR` overrides it. Keep it in `.gitignore`, or a cache write changes the tree it was keyed by |
-| `busyLock` | `runner.lock` | A file in the state folder that means a run is under way; the idle full run waits for it |
+| `stateDir` | `state` | Where the check cache lives; `WORKFLOW_STATE_DIR` overrides it. Keep it in `.gitignore`, or a cache write changes the tree it was keyed by |
 | `checks` | `{}` | The project's checks for `runner/runner-checks.ts`, by name, each a shell command |
 | `alwaysRun` | `[]` | Checks never taken from the cache |
 | `envFile` | `""` | The env file the checks run with (its hash is part of the cache key); `""` for none |
@@ -54,7 +50,7 @@ npm run gate -- --base main                  # every gate on the change since ma
 npm run gate -- --base main --integration    # and the integration tests
 npm run gate -- --base main --report my-branch   # and write gate-reports/my-branch.gate.json
 npm run checks                               # the project's checks, cached by tree
-node runner/full-run.ts --why promote        # the whole suite, logging selection misses
+npm test                                     # the whole unit suite as a safety net
 ```
 
 Exit 0 when every stage passes, 1 when one fails, 2 when one could not run. The summary lists
@@ -64,7 +60,7 @@ Stryker's timeouts and the ten slowest test files.
 ## In a pre-commit hook
 
 `runner/install-pre-commit-core.ts` renders `adapters/git/pre-commit.template`: the secret,
-hidden-Unicode, tamper and locked-files gates on the staged change, then the project's own checks.
+hidden-Unicode gates on the staged change, then the project's own checks.
 Name the cached checks as the project check, so a commit on a tree the last run already judged
 waits for nothing:
 
@@ -133,13 +129,15 @@ and the tip def67890 changed src/a.ts since`.
 ## A repo's own merge check
 
 `mergeCheck` names a module whose export `mergeCheck(branch, base, git)` returns its printed
-lines, whether it refuses the merge, and the records a passing merge logs
+lines and whether it refuses the merge
 (`runner/merge-check.ts`). The reference build asks there whether its owner chose the change; a
 team might ask for a linked work item. A refusal still runs the gate, and fails it.
 
-## What stays in the reference build
+## The router and the retired tools
 
-The parts that read the reference repo stay there, each listed in [MIRROR.md](../MIRROR.md):
-its owner-choice merge check, the registry's reader of its hook settings and watchlist, the gate
-lessons it files into its learning loop, its cloud build pacing and the `/flow` command that
-starts its dispatcher.
+`skills/dispatch` runs role subagents and calls the gate commands. The runner does not dispatch
+agents, record their queue, write verdict ledgers or calculate function and gate metrics.
+The script flow, full-run scheduler, registry, ledger, metrics, tempo, locks and guard hooks
+were retired in ticket 95. Their earlier versions remain available in v0.9.0 and the reference
+archive. The owner-choice merge module remains specific to the reference repo; a team supplies
+its own `mergeCheck` if needed. See [02-flow-and-roles.md](02-flow-and-roles.md).

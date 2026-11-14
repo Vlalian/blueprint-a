@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: workflow-tickets-need-agreed
+expected_outcome: |
+  Only 40-faster-gate is buildable (Agreed quotes the owner, no dependency). 42 is blocked by 40 (not done), 41 is
+  proposed with no Agreed line and 43's Agreed line quotes nobody: both are needs-you. 39 is done.
+context:
+  scaffold_script: place-files.sh

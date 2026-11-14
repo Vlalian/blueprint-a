@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { GOOD_CLAIMS } from '../research/fixtures.ts';
+import { GOOD_CLAIMS } from '../lib/research-fixtures.ts';
 import { GOOD_PLAN, GOOD_TICKET } from './fixtures.ts';
 
 // Spawns processes: under a full-suite load on Windows they run several times slower (ticket 29).

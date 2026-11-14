@@ -1,0 +1,217 @@
+{
+  "name": "example",
+  "tracker": "/work/app/docs/tickets",
+  "preflight": {
+    "tools": [
+      "git"
+    ]
+  },
+  "review": {
+    "model": "sonnet",
+    "timeoutMinutes": 15
+  },
+  "planning": {
+    "model": "sonnet",
+    "timeoutMinutes": 15
+  },
+  "roles": {
+    "specifier": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [
+        "tests/new/**"
+      ],
+      "checks": {
+        "lint": "npm run lint",
+        "red-check": "node \"{WORKFLOW}/gates/red-check/cli.ts\" --base {BASE}"
+      },
+      "testPaths": [
+        "tests/**/*.test.ts"
+      ],
+      "commands": {
+        "lint": "npm run lint",
+        "typecheck": "npm run typecheck",
+        "test": "npm test",
+        "build": "npm run build"
+      }
+    },
+    "coder": {
+      "model": "sonnet",
+      "timeoutMinutes": 20,
+      "editablePaths": [
+        "src/**",
+        "tests/coder/**"
+      ],
+      "checks": {
+        "test-deletion": "node \"{WORKFLOW}/gates/test-deletion/cli.ts\" --base {BASE} --plan \"{PLAN}\"",
+        "four-checks": "node \"{WORKFLOW}/gates/four-checks/cli.ts\" --config \"{WORKFLOW}/projects/example/project.json\"",
+        "debug-leftovers": "node \"{WORKFLOW}/gates/debug-leftovers/cli.ts\" --base {BASE} --config \"{WORKFLOW}/projects/example/project.json\""
+      },
+      "testPaths": [
+        "tests/**/*.test.ts"
+      ],
+      "commands": {
+        "lint": "npm run lint",
+        "typecheck": "npm run typecheck",
+        "test": "npm test",
+        "build": "npm run build"
+      }
+    },
+    "cleaner": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [
+        "src/**"
+      ],
+      "checks": {
+        "test-deletion": "node \"{WORKFLOW}/gates/test-deletion/cli.ts\" --base {BASE} --plan \"{PLAN}\"",
+        "duplication": "node \"{WORKFLOW}/gates/duplication/cli.ts\" --base {BASE}",
+        "boundaries": "node \"{WORKFLOW}/gates/boundaries/cli.ts\" src tests",
+        "four-checks": "node \"{WORKFLOW}/gates/four-checks/cli.ts\" --config \"{WORKFLOW}/projects/example/project.json\"",
+        "debug-leftovers": "node \"{WORKFLOW}/gates/debug-leftovers/cli.ts\" --base {BASE} --config \"{WORKFLOW}/projects/example/project.json\""
+      },
+      "testPaths": [
+        "tests/**/*.test.ts"
+      ],
+      "commands": {
+        "lint": "npm run lint",
+        "typecheck": "npm run typecheck",
+        "test": "npm test",
+        "build": "npm run build"
+      }
+    },
+    "hardener": {
+      "model": "sonnet",
+      "timeoutMinutes": 30,
+      "editablePaths": [
+        "tests/hardener/**"
+      ],
+      "checks": {
+        "test-deletion": "node \"{WORKFLOW}/gates/test-deletion/cli.ts\" --base {BASE} --plan \"{PLAN}\"",
+        "onkel": "node \"{WORKFLOW}/gates/hardener/cli.ts\" --base {BASE}",
+        "four-checks": "node \"{WORKFLOW}/gates/four-checks/cli.ts\" --config \"{WORKFLOW}/projects/example/project.json\"",
+        "debug-leftovers": "node \"{WORKFLOW}/gates/debug-leftovers/cli.ts\" --base {BASE} --config \"{WORKFLOW}/projects/example/project.json\"",
+        "sast": "node \"{WORKFLOW}/gates/sast/cli.ts\" --base {BASE}",
+        "secret-scan": "node \"{WORKFLOW}/gates/secret-scan/cli.ts\" --base {BASE}",
+        "hidden-unicode": "node \"{WORKFLOW}/gates/hidden-unicode/cli.ts\" --base {BASE}",
+        "supply-chain": "node \"{WORKFLOW}/gates/supply-chain/cli.ts\" --base {BASE}"
+      },
+      "testPaths": [
+        "tests/**/*.test.ts"
+      ],
+      "commands": {
+        "lint": "npm run lint",
+        "typecheck": "npm run typecheck",
+        "test": "npm test",
+        "build": "npm run build"
+      }
+    },
+    "controller": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [],
+      "testPaths": [],
+      "commands": {},
+      "checks": {}
+    },
+    "task-finder": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [],
+      "testPaths": [],
+      "commands": {},
+      "checks": {}
+    },
+    "researcher": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [],
+      "testPaths": [],
+      "commands": {},
+      "checks": {}
+    },
+    "review": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [],
+      "testPaths": [],
+      "commands": {},
+      "checks": {}
+    },
+    "skeptic": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [],
+      "testPaths": [],
+      "commands": {},
+      "checks": {}
+    },
+    "walker": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [],
+      "testPaths": [],
+      "commands": {},
+      "checks": {}
+    },
+    "scout": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [],
+      "testPaths": [],
+      "commands": {},
+      "checks": {}
+    },
+    "briefing": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": [],
+      "testPaths": [],
+      "commands": {},
+      "checks": {}
+    }
+  },
+  "repo": {
+    "remote": "https://example.com/team/app.git",
+    "worktree": "/work/app",
+    "branchPrefix": "ticket-"
+  },
+  "grill": "/work/app/docs/grill.md",
+  "integrationBranch": "dev",
+  "promoteTo": "main",
+  "pr": {
+    "remote": "origin",
+    "coderabbit": false
+  },
+  "timeoutMinutes": 30,
+  "walk": {
+    "previewUrl": "https://preview.example.com",
+    "productionDomains": [
+      "app.example.com"
+    ]
+  },
+  "safety": {
+    "confirmed": false,
+    "deny": [],
+    "productionDatabaseHost": null
+  },
+  "discovered": {
+    "branches": [
+      "dev",
+      "main"
+    ],
+    "scripts": [
+      "lint",
+      "typecheck",
+      "test",
+      "build"
+    ],
+    "envNames": []
+  },
+  "checks": {
+    "lint": "npm run lint",
+    "typecheck": "npm run typecheck",
+    "test": "npm test",
+    "build": "npm run build"
+  }
+}

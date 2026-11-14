@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Graph } from './affected-deps.ts';
 import { DEFAULTS, matchesAny } from './runner-config.ts';
-import { cruiseArgs, CRUISER, LS_FILES, MAX_NAMED_CHARS, moduleGraph, selectionExit, selectionLines, selectionRecord, selectTests, type Selection } from './self-gate-select.ts';
+import { cruiseArgs, CRUISER, LS_FILES, MAX_NAMED_CHARS, moduleGraph, selectionExit, selectionLines, selectTests, type Selection } from './self-gate-select.ts';
 
 const RECORDED = readFileSync(join(import.meta.dirname, '..', 'test', 'fixtures', 'affected-tests', 'cruise.json'), 'utf8');
 const SPAWNING = "spawnSync(process.execPath, [join(import.meta.dirname, '..', 'scripts', 'cli.ts')]);";
@@ -148,10 +148,5 @@ describe('selectionLines, selectionExit and selectionRecord', () => {
     expect(selectionLines(all)).toEqual(['tests: all of them (package.json is shared ground)']);
     expect(selectionExit(all)).toBe(0);
     expect(selectionExit(some)).toBe(0);
-  });
-
-  it('records the selection for the full run', () => {
-    expect(selectionRecord(base, 'abc', ['x.ts'], some)).toEqual({ ...base, kind: 'selection', sha: 'abc', changed: ['x.ts'], all: false, reason: '', tests: ['a.test.ts', 'b.integration.test.ts'] });
-    expect(selectionRecord(base, 'abc', ['package.json'], all)).toEqual({ ...base, kind: 'selection', sha: 'abc', changed: ['package.json'], all: true, reason: 'package.json is shared ground', tests: [] });
   });
 });
