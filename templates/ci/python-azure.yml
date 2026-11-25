@@ -1,0 +1,60 @@
+# Azure DevOps pipeline for a Python project that runs Blueprint A's gates (ticket 99). Copy it to
+# azure-pipelines.yml in the project. It runs what a role's gates run locally, on Linux: ruff (lint
+# and format), mypy, pytest with coverage, bandit, Semgrep's p/python rules (Semgrep runs here, not
+# on Windows, where its native support is experimental) and pip-audit. Mutation (cosmic-ray) and
+# CRAP stay with the hardener's local gate. The tools are the project's dev dependencies: replace the
+# install step with the project's own (`uv sync --dev`, `pip install -e ".[dev]"`) when it has one.
+
+trigger:
+  branches:
+    include: [main, dev]
+
+pr:
+  branches:
+    include: ["*"]
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.12"
+    displayName: Python 3.12
+
+  - script: |
+      python -m pip install --upgrade pip
+      python -m pip install -e .
+      python -m pip install pytest "coverage>=7.10" ruff mypy bandit pip-audit
+    displayName: Install the project and its dev tools
+
+  - script: |
+      ruff check .
+      ruff format --check .
+    displayName: Lint
+
+  - script: mypy
+    displayName: Types
+
+  - script: |
+      coverage run -m pytest -q --junitxml=pytest-junit.xml
+      coverage report
+    displayName: Tests with coverage
+
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: JUnit
+      testResultsFiles: pytest-junit.xml
+    displayName: Publish test results
+
+  - script: bandit -q -r src
+    displayName: Security (bandit)
+
+  - script: |
+      python -m pip install semgrep
+      semgrep scan --config p/python --error --metrics=off
+    displayName: Security (Semgrep p/python)
+
+  - script: pip-audit
+    displayName: Known vulnerabilities (pip-audit)

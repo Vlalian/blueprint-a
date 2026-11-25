@@ -1,7 +1,7 @@
 // node gates/debug-leftovers/cli.ts --base <ref> --config <project.json> [--cwd <dir>]
 // No debug leftovers (ticket 47) as a role check: fails when the worktree, against <ref> and with
-// its untracked files, adds a console.log, console.debug or debugger line to a source file that is
-// not a test and not on the project's "printAllowed" list. The Stop gate runs the same judgement
+// its untracked files, adds a console.log, console.debug or debugger line to a JS or TS source file,
+// or a print(, breakpoint( or pdb line to a Python one (ticket 99), that is not a test and not on the project's "printAllowed" list. The Stop gate runs the same judgement
 // on its own; a cloud role runs this one. Exit 0 pass, 1 fail, 2 could not run (no diff at <ref>).
 
 import { existsSync, readFileSync } from 'node:fs';

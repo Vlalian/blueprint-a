@@ -11,6 +11,7 @@
 import { join, relative, resolve, sep } from 'node:path';
 import type { FunctionLines, FunctionRef, FunctionScore, Mutant, TestStrengthAdapter } from '../../gates/test-strength/contract.ts';
 import type { AdapterOptions } from '../../gates/test-strength/gate.ts';
+import { decode, parseXml, under, type Element } from '../../gates/lib/xml.ts';
 
 export interface DotnetIo {
   read(path: string): string;
@@ -55,43 +56,9 @@ export interface Cobertura {
   methods: CoberturaMethod[];
 }
 
-export interface Element {
-  name: string;
-  attrs: Record<string, string>;
-  children: Element[];
-  text: string;
-}
-
 interface MutationReport {
   files: Record<string, { mutants: Array<{ location: { start: { line: number } }; mutatorName: string; status: string }> }>;
 }
-
-const ENTITIES: Record<string, string> = { lt: '<', gt: '>', quot: '"', apos: "'", amp: '&' };
-const decode = (text: string) => text.replace(/&(lt|gt|quot|apos|amp);/g, (_, e: string) => ENTITIES[e]!);
-const TAG = /<(\/?)([\w-]+)([^>]*?)(\/?)>/g;
-const ATTR = /([\w-]+)="([^"]*)"/g;
-
-/** Enough XML for coverlet's Cobertura: elements, attributes and text; the prolog is skipped. */
-export function parseXml(xml: string): Element {
-  const root: Element = { name: '', attrs: {}, children: [], text: '' };
-  const open = [root];
-  let last = 0;
-  for (const m of xml.matchAll(TAG)) {
-    open.at(-1)!.text += xml.slice(last, m.index);
-    last = m.index + m[0].length;
-    if (m[1] === '/') {
-      open.pop();
-      continue;
-    }
-    const element = { name: m[2]!, attrs: Object.fromEntries([...m[3]!.matchAll(ATTR)].map(([, k, v]) => [k, decode(v!)])), children: [], text: '' };
-    open.at(-1)!.children.push(element);
-    if (m[4] !== '/') open.push(element);
-  }
-  return root;
-}
-
-/** The elements reached from `from` by following child names in order. */
-const under = (from: Element[], names: string[]) => names.reduce((level, name) => level.flatMap((e) => e.children.filter((c) => c.name === name)), from);
 
 function lineOf(line: Element): CoberturaLine {
   const valid = /\(\d+\/(\d+)\)/.exec(String(line.attrs['condition-coverage']));

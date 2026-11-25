@@ -1,19 +1,23 @@
 // The sast gate (ticket 60) with its I/O passed in, so it is tested in-process with recorded Semgrep
-// output; cli.ts only wires in Semgrep, git and the file system. It scans the source files a change
-// touched (the change, not the repo: ticket 56's rule) with the rules pinned in rules/, then the
-// same files as they were at the base, in a temp folder, so a finding the base already had is not
-// new. Semgrep runs with metrics, the version check and its own nosemgrep handling off, on a local
-// rules folder: a run never needs the network. Semgrep missing or failing is "could not run" (exit
-// 2) with what to install, never a pass.
+// output; cli.ts only wires in Semgrep, bandit, git and the file system. It scans the source files a
+// change touched (the change, not the repo: ticket 56's rule) with the rules pinned in rules/, then
+// the same files as they were at the base, in a temp folder, so a finding the base already had is
+// not new. Semgrep runs with metrics, the version check and its own nosemgrep handling off, on a
+// local rules folder: a run never needs the network. Python files go to bandit instead, judged the
+// same way (bandit.ts, ticket 99). A scanner missing or failing is "could not run" (exit 2) with
+// what to install, never a pass.
 
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { failClosed, type GateResult } from '../lib/contract.ts';
+import { BANDIT_ARGS, banditSources, nosecFindings, parseBandit } from './bandit.ts';
 import { judged, newFindings, parseScan, PINNED_SEMGREP, sastSources, unpinned, type Finding, type Side, type Suppressed } from './core.ts';
 
 export interface SastIo {
   /** Semgrep with these arguments in this folder; `error` when it could not be started. */
   semgrep(args: string[], cwd: string): { status: number | null; stdout: string; error?: Error };
+  /** The project's bandit with these arguments (file paths absolute or from the current folder); throws with its install command when it is missing. */
+  bandit(args: string[]): { status: number | null; stdout: string; error?: Error };
   /** A changed file's text in the worktree, by its path there; undefined when it does not exist. */
   readHead(file: string): string | undefined;
   /** The file's text at the base; undefined when the base has no such file. */
@@ -52,46 +56,81 @@ export const INSTALL_HINT = `Semgrep is not installed or not on PATH. Install th
 /** Semgrep's arguments before the target files: local rules only, JSON out, nothing sent anywhere. */
 export const SEMGREP_ARGS = (rules: string) => ['scan', '--config', rules, '--json', '--metrics=off', '--disable-version-check', '--disable-nosem', '--'];
 
-function scan(files: string[], cwd: string, rules: string, io: SastIo) {
-  const r = io.semgrep([...SEMGREP_ARGS(rules), ...files], cwd);
-  if (r.error !== undefined) throw new Error((r.error as NodeJS.ErrnoException).code === 'ENOENT' ? INSTALL_HINT : `Semgrep could not start: ${r.error.message}`);
-  return parseScan(r.stdout, r.status);
+type Scan = { version?: string; findings: Finding[]; notScanned: string[] };
+
+/** One scanner: the changed files it is for, a scan of them in a folder, and its suppression rules. */
+interface Scanner {
+  sources(files: string[]): string[];
+  scan(files: string[], dir: string): Scan;
+  judge(findings: Finding[], texts: Map<string, string>): { kept: Finding[]; suppressed: Suppressed[] };
 }
 
-/** The base's findings on the files it has, scanned from copies in a temp folder that is always removed. */
-function baseSide(files: string[], rules: string, io: SastIo): Side {
-  const texts = new Map(files.flatMap((f) => {
-    const text = io.readBase(f);
+const semgrep = (rules: string, io: SastIo): Scanner => ({
+  sources: sastSources,
+  scan: (files, dir) => {
+    const r = io.semgrep([...SEMGREP_ARGS(rules), ...files], dir);
+    if (r.error !== undefined) throw new Error((r.error as NodeJS.ErrnoException).code === 'ENOENT' ? INSTALL_HINT : `Semgrep could not start: ${r.error.message}`);
+    return parseScan(r.stdout, r.status);
+  },
+  judge: judged,
+});
+
+const bandit = (io: SastIo): Scanner => ({
+  sources: banditSources,
+  scan: (files, dir) => {
+    const r = io.bandit([...BANDIT_ARGS, ...files.map((f) => join(dir, ...f.split('/')))]);
+    if (r.error !== undefined) throw new Error(`bandit could not start: ${r.error.message}`);
+    return parseBandit(r.stdout, r.status, dir);
+  },
+  judge: (findings, texts) => ({ kept: [...findings, ...nosecFindings(texts)], suppressed: [] }),
+});
+
+const textsOf = (files: string[], read: (file: string) => string | undefined) =>
+  new Map(files.flatMap((f) => {
+    const text = read(f);
     return text === undefined ? [] : [[f, text] as const];
   }));
+
+/** The base's findings on the files it has, scanned from copies in a temp folder that is always removed. */
+function baseSide(files: string[], scanner: Scanner, io: SastIo): Side {
+  const texts = textsOf(files, io.readBase);
   // Stryker disable next-line ArrayDeclaration: equivalent; a made-up base finding has no rule, file or line, so it matches no head finding
   if (texts.size === 0) return { findings: [], texts };
   const dir = io.tempDir();
   try {
     for (const [f, text] of texts) io.write(join(dir, ...f.split('/')), text);
-    return { findings: judged(scan([...texts.keys()], dir, rules, io).findings, texts).kept, texts };
+    return { findings: scanner.judge(scanner.scan([...texts.keys()], dir).findings, texts).kept, texts };
   } finally {
     io.remove(dir);
   }
 }
 
-function judge(opts: SastOptions, io: SastIo): SastResult {
-  const texts = new Map(sastSources(opts.files).flatMap((f) => {
-    const text = io.readHead(f);
-    return text === undefined ? [] : [[f, text] as const];
-  }));
+/** One scanner's part of the verdict, or undefined when no changed file is for it. */
+function part(scanner: Scanner, opts: SastOptions, io: SastIo) {
+  const texts = textsOf(scanner.sources(opts.files), io.readHead);
   const scanned = [...texts.keys()];
-  if (scanned.length === 0) return { gate: 'sast', pass: true, scanned, findings: [], warnings: [], suppressed: [], notScanned: [] };
-  const head = scan(scanned, opts.cwd, opts.rules, io);
-  const { kept, suppressed } = judged(head.findings, texts);
-  const fresh = newFindings({ findings: kept, texts }, baseSide(scanned, opts.rules, io));
-  const findings = fresh.filter((f) => f.severity === 'ERROR');
-  const warnings = fresh.filter((f) => f.severity !== 'ERROR');
-  const note = unpinned(head.version);
-  return { gate: 'sast', pass: findings.length === 0 && head.notScanned.length === 0, scanned, findings, warnings, suppressed, notScanned: head.notScanned, semgrep: head.version, ...(note === undefined ? {} : { note }) };
+  if (scanned.length === 0) return undefined;
+  const head = scanner.scan(scanned, opts.cwd);
+  const { kept, suppressed } = scanner.judge(head.findings, texts);
+  const fresh = newFindings({ findings: kept, texts }, baseSide(scanned, scanner, io));
+  return { scanned, fresh, suppressed, notScanned: head.notScanned, version: head.version };
 }
 
-/** The gate's verdict; Semgrep missing or failing is a result that could not run. */
+function judge(opts: SastOptions, io: SastIo): SastResult {
+  const fromSemgrep = part(semgrep(opts.rules, io), opts, io);
+  const parts = [fromSemgrep, part(bandit(io), opts, io)].filter((p) => p !== undefined);
+  const scanned = parts.flatMap((p) => p.scanned);
+  const fresh = parts.flatMap((p) => p.fresh);
+  const findings = fresh.filter((f) => f.severity === 'ERROR');
+  const warnings = fresh.filter((f) => f.severity !== 'ERROR');
+  const notScanned = parts.flatMap((p) => p.notScanned);
+  const result = { gate: 'sast', pass: findings.length === 0 && notScanned.length === 0, scanned, findings, warnings, suppressed: parts.flatMap((p) => p.suppressed), notScanned };
+  if (fromSemgrep === undefined) return result;
+  const note = unpinned(fromSemgrep.version!);
+  return { ...result, semgrep: fromSemgrep.version, ...(note === undefined ? {} : { note }) };
+}
+
+/** The gate's verdict; Semgrep or bandit missing or failing is a result that could not run. */
 export const sastGate = (opts: SastOptions, io: SastIo): SastResult => failClosed('sast', () => judge(opts, io));
 
 const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim();

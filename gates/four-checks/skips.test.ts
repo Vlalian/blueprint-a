@@ -39,6 +39,20 @@ describe('skippedIn', () => {
     for (const bad of [undefined, '', '{nope', '{}', 'null', '{"testResults":{}}']) expect(skippedIn(bad, '/w')).toBeUndefined();
   });
 
+  // Two JUnit reports pytest 9 wrote (`--junitxml`) for fixtures/python-sample with a skipif test
+  // and a skipped method added: base with DATABASE_URL set, now without it (ticket 99).
+  it("names the skipped tests of pytest's JUnit XML report by classname and name", () => {
+    const junit = (name: string) => readFileSync(join(FIXTURES, `pytest-${name}.xml`), 'utf8');
+    expect(skippedIn(junit('now'), '/work/python-sample')).toEqual(['tests.test_parity > test_saves_to_the_database', 'tests.test_parity.TestOdd > test_refunds']);
+    expect(skippedIn(junit('base'), '/work/python-sample')).toEqual(['tests.test_parity.TestOdd > test_refunds']);
+    expect(newSkips(skippedIn(junit('now'), '/w')!, skippedIn(junit('base'), '/w')!)).toEqual(['tests.test_parity > test_saves_to_the_database']);
+  });
+
+  it('reads a JUnit report with no tests as none skipped, and XML that is no JUnit report as no report', () => {
+    expect(skippedIn('<?xml version="1.0"?><testsuites><testsuite tests="0"></testsuite></testsuites>', '/w')).toEqual([]);
+    expect(skippedIn('<coverage/>', '/w')).toBeUndefined();
+  });
+
   it('reads a file without assertion results as no tests', () => {
     expect(skippedIn(JSON.stringify({ testResults: [{ name: '/w/a.test.ts' }] }), '/w')).toEqual([]);
   });
@@ -172,4 +186,17 @@ it('skips bites: a key test that skips on a missing env var fails the check, and
   };
   const result = proveItBites({ run, inject: () => void (env = 'missing'), revert: () => void (env = 'set'), gate: 'four-checks' });
   expect(result).toEqual(BITES);
+});
+
+it('accepts a top-level testsuite and counts only cases with a skipped child', () => {
+  const xml = ' \n<testsuite><testcase file="a.py" name="test_skip"><system-out/><skipped/></testcase><testcase name="test_ok"><system-out/></testcase></testsuite>';
+  expect(skippedIn(xml, '/w')).toEqual(['a.py > test_skip']);
+});
+
+it('accepts a JUnit suite when an unrelated XML element precedes it', () => {
+  expect(skippedIn('<metadata/><testsuites><testsuite/></testsuites>', '/w')).toEqual([]);
+});
+
+it('still reads JSON surrounded by whitespace', () => {
+  expect(skippedIn(' \n' + report('/w/a.test.ts', ['skip', 'skipped']) + '\n ', '/w')).toEqual(['a.test.ts > skip']);
 });

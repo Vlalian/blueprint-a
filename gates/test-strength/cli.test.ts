@@ -60,6 +60,15 @@ describe('test-strength CLI', () => {
     expect(JSON.parse(r.stdout)).toMatchObject({ gate: 'test-strength', pass: false, error: expect.stringMatching(/^dotnet was not found: install the \.NET SDK 8 or later/) });
   });
 
+  it('exits 2 with what to install when there is no Python for --runner python', () => {
+    const empty = mkdtempSync(join(tmpdir(), 'test-strength-cli-'));
+    dirs.push(empty);
+    const env = { ...process.env, PATH: empty, Path: empty, WORKFLOW_PYTHON: '' };
+    const r = spawnSync(process.execPath, [CLI, 'crap', '--runner', 'python', '--cwd', empty, 'src/a.py'], { encoding: 'utf8', env });
+    expect(r.status).toBe(2);
+    expect(JSON.parse(r.stdout)).toMatchObject({ gate: 'test-strength', pass: false, error: expect.stringMatching(/^Python 3\.10 or later was not found/) });
+  });
+
   it('exits 2 with the usage when it cannot run', () => {
     const r = run('crap');
     expect(r.status).toBe(2);

@@ -1,12 +1,14 @@
 // The sast gate's real I/O (ticket 60): Semgrep and git spawned without a shell, files under the
 // worktree. Semgrep from pip is `semgrep` on Linux and `semgrep.exe` on Windows, which Node finds
 // on PATH without a shell. PYTHONUTF8=1 keeps Semgrep's Python reading and writing UTF-8 on Windows,
-// where the console code page would otherwise apply.
+// where the console code page would otherwise apply. bandit is the Python project's own, run from its
+// Python (adapters/python/toolchain.ts, ticket 99).
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { realToolchain } from '../../adapters/python/io.ts';
 import type { SastCliIo } from './gate.ts';
 
 /** The pinned rules folder beside this file. */
@@ -26,6 +28,7 @@ export function realSastIo(cwd: string, command = DEFAULT_SEMGREP): SastCliIo {
       const r = spawnSync(command, args, { cwd: at, encoding: 'utf8', maxBuffer: BUFFER, env: { ...process.env, PYTHONUTF8: '1' } });
       return { status: r.status, stdout: r.stdout ?? '', ...(r.error === undefined ? {} : { error: r.error }) };
     },
+    bandit: (args) => realToolchain(cwd).run('bandit', args),
     readHead: (file) => {
       const path = join(cwd, ...file.split('/'));
       return existsSync(path) ? readFileSync(path, 'utf8') : undefined;

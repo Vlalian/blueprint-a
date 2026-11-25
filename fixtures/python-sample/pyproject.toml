@@ -1,0 +1,27 @@
+[project]
+name = "sample"
+version = "0.1.0"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src"]
+
+[tool.importlinter]
+root_package = "sample"
+
+[[tool.importlinter.contracts]]
+name = "Parity stays independent of grades"
+type = "forbidden"
+source_modules = ["sample.parity"]
+forbidden_modules = ["sample.grades"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.mypy]
+files = ["src"]
+strict = true

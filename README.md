@@ -63,8 +63,8 @@ Omit `walk` when no preview exists, and omit `neon` unless the project uses Neon
 | Skipped tests are not green | `gates/four-checks/skips-cli.ts` | C1: no more tests with status `skipped`, `pending`, `todo` or `disabled` than at the base |
 | Red check | `gates/red-check` | D1: a new test must fail on the base code (and zero tests is a fail) |
 | Test-deletion guard | `gates/test-deletion` | D2: no test present at base may disappear unless allowed by file or `file::title`; a plan's Delete section must name a replacing test present on the branch (ticket 70) |
-| No debug leftovers | `gates/debug-leftovers` | No added `console.log`, `console.debug` or `debugger` outside tests |
-| CRAP and mutation | `gates/test-strength` + `adapters/js-ts` or `adapters/dotnet` | D3: every function CRAP ≤ 6, every mutant killed, through a language adapter |
+| No debug leftovers | `gates/debug-leftovers` | No added `console.log`, `console.debug` or `debugger`, or Python `print(`, `breakpoint(` or pdb, outside tests |
+| CRAP and mutation | `gates/test-strength` + `adapters/js-ts`, `adapters/dotnet` or `adapters/python` | D3: every function CRAP ≤ 6, every mutant killed, through a language adapter |
 | CRAP and mutation on changed lines | `gates/onkel`, `gates/hardener/gate.ts` | D3, scoped to the lines a change touched (vitest projects) |
 | Canary | `gates/canary` | D5: every prove-it-bites test still passes clean input, fails the injected fault and passes the revert; each gate's state is logged |
 | Plan gate | `gates/plan` | E1: plan lint, cross-artifact, EARS criteria, command allow list |
@@ -117,6 +117,30 @@ on each machine). Without `dotnet` the gate exits 2 and says what to install.
 `adapters/dotnet/bites.integration.test.ts` proves both gates bite on `fixtures/dotnet-sample`, a
 class library with an xUnit test project; it is skipped, with that message, where there is no
 `dotnet`. It was proven on Linux; its last check happens on real work code at work.
+
+`adapters/python` implements the same calls for Python: one pytest run under coverage.py gives
+each function's own lines (its per-function regions, coverage 7.10 or later), `radon cc -j` its
+complexity, joined by the function's first line; cosmic-ray gives the mutants, after its baseline.
+A failed baseline or an incompetent mutant (the test command never ran) exits 2. A path may be a
+folder of `.py` files, and `--base` holds the mutants to the lines changed since that ref:
+
+```sh
+node gates/test-strength/cli.ts crap     --runner python --cwd <project> src/app/pricing.py
+node gates/test-strength/cli.ts mutation --runner python --cwd <project> --base origin/main src
+```
+
+The tools (pytest, coverage, radon, `cosmic-ray==8.9.0`, and for the other Python gates bandit,
+pip-audit and import-linter) are the project's dev dependencies, found in the nearest `.venv` at or
+above the project folder, or the Python `WORKFLOW_PYTHON` names (3.10 or later); a missing one
+exits 2 with its `pip install` command. Role commands run that same Python through
+`node adapters/python/run.ts -m <tool> …`.
+`adapters/python/bites.integration.test.ts` proves both gates bite on `fixtures/python-sample`.
+The red check (`--junit`), skipped tests, the test-deletion guard, debug leftovers, boundaries
+(`--python`), SAST (bandit) and supply chain (pip-audit) read Python too;
+`projects/sample-python/project.json` wires them (`adapters/python/project.integration.test.ts`
+runs every one of its checks), and
+`templates/ci/python-github.yml` and `templates/ci/python-azure.yml` are the CI side. See
+[docs/03-gates.md](docs/03-gates.md).
 
 ### The host adapter
 

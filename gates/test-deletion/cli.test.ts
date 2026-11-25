@@ -38,6 +38,23 @@ describe('test-deletion CLI', () => {
     ).toEqual(BITES);
   });
 
+  it('bites on pytest: one test function deleted from a kept file fails, restoring it passes (ticket 99)', () => {
+    const dir = repo();
+    const file = join(dir, 'test_math.py');
+    const both = 'def test_one():\n    assert True\n\n\ndef test_two():\n    assert True\n';
+    writeFileSync(file, both);
+    execFileSync('git', ['add', '-A'], { cwd: dir });
+    execFileSync('git', ['commit', '-qm', 'python'], { cwd: dir });
+    expect(
+      proveItBites({
+        gate: 'test-deletion',
+        run: () => run(dir).status ?? -1,
+        inject: () => writeFileSync(file, 'def test_one():\n    assert True\n'),
+        revert: () => writeFileSync(file, both),
+      }),
+    ).toEqual(BITES);
+  });
+
   it('fails on a deleted test file and names its tests', () => {
     const dir = repo();
     rmSync(join(dir, 'a.test.ts'));

@@ -1,0 +1,67 @@
+{
+  "name": "sample-python",
+  "source": "fixtures/python-sample",
+  "fixture": true,
+  "sast": true,
+  "preflight": { "tools": ["git", "python"] },
+  "review": { "model": "sonnet", "timeoutMinutes": 15 },
+  "planning": { "model": "sonnet", "timeoutMinutes": 15 },
+  "roles": {
+    "specifier": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": ["tests/**/test_*.py"],
+      "testPaths": ["tests/**/test_*.py"],
+      "testCommand": "node \"{WORKFLOW}/adapters/python/run.ts\" -m pytest -q",
+      "checks": {
+        "lint": "node \"{WORKFLOW}/adapters/python/run.ts\" -m ruff check .",
+        "red-check": "node \"{WORKFLOW}/gates/red-check/cli.ts\" --base {BASE} --junit --test-command \"node \\\"{WORKFLOW}/adapters/python/run.ts\\\" -m pytest -q -p no:cacheprovider\""
+      }
+    },
+    "coder": {
+      "model": "sonnet",
+      "timeoutMinutes": 20,
+      "editablePaths": ["src/**"],
+      "checks": {
+        "lint": "node \"{WORKFLOW}/adapters/python/run.ts\" -m ruff check . && node \"{WORKFLOW}/adapters/python/run.ts\" -m ruff format --check .",
+        "typecheck": "node \"{WORKFLOW}/adapters/python/run.ts\" -m mypy",
+        "test": "node \"{WORKFLOW}/gates/four-checks/skips-cli.ts\" --base {BASE} --report .pytest-junit.xml --test \"node \\\"{WORKFLOW}/adapters/python/run.ts\\\" -m pytest -q -p no:cacheprovider --junitxml=.pytest-junit.xml\"",
+        "test-deletion": "node \"{WORKFLOW}/gates/test-deletion/cli.ts\" --base {BASE} --plan \"{PLAN}\"",
+        "debug-leftovers": "node \"{WORKFLOW}/gates/debug-leftovers/cli.ts\" --base {BASE} --config \"{WORKFLOW}/projects/sample-python/project.json\""
+      }
+    },
+    "cleaner": {
+      "model": "sonnet",
+      "timeoutMinutes": 15,
+      "editablePaths": ["src/**"],
+      "checks": {
+        "lint": "node \"{WORKFLOW}/adapters/python/run.ts\" -m ruff check . && node \"{WORKFLOW}/adapters/python/run.ts\" -m ruff format --check .",
+        "typecheck": "node \"{WORKFLOW}/adapters/python/run.ts\" -m mypy",
+        "test": "node \"{WORKFLOW}/gates/four-checks/skips-cli.ts\" --base {BASE} --report .pytest-junit.xml --test \"node \\\"{WORKFLOW}/adapters/python/run.ts\\\" -m pytest -q -p no:cacheprovider --junitxml=.pytest-junit.xml\"",
+        "test-deletion": "node \"{WORKFLOW}/gates/test-deletion/cli.ts\" --base {BASE} --plan \"{PLAN}\"",
+        "debug-leftovers": "node \"{WORKFLOW}/gates/debug-leftovers/cli.ts\" --base {BASE} --config \"{WORKFLOW}/projects/sample-python/project.json\"",
+        "duplication": "node \"{WORKFLOW}/gates/duplication/cli.ts\" --base {BASE}",
+        "boundaries": "node \"{WORKFLOW}/gates/boundaries/cli.ts\" --python"
+      }
+    },
+    "hardener": {
+      "model": "sonnet",
+      "timeoutMinutes": 30,
+      "editablePaths": ["tests/**/test_*.py"],
+      "testPaths": ["tests/**/test_*.py"],
+      "checks": {
+        "lint": "node \"{WORKFLOW}/adapters/python/run.ts\" -m ruff check . && node \"{WORKFLOW}/adapters/python/run.ts\" -m ruff format --check .",
+        "typecheck": "node \"{WORKFLOW}/adapters/python/run.ts\" -m mypy",
+        "test": "node \"{WORKFLOW}/gates/four-checks/skips-cli.ts\" --base {BASE} --report .pytest-junit.xml --test \"node \\\"{WORKFLOW}/adapters/python/run.ts\\\" -m pytest -q -p no:cacheprovider --junitxml=.pytest-junit.xml\"",
+        "test-deletion": "node \"{WORKFLOW}/gates/test-deletion/cli.ts\" --base {BASE} --plan \"{PLAN}\"",
+        "debug-leftovers": "node \"{WORKFLOW}/gates/debug-leftovers/cli.ts\" --base {BASE} --config \"{WORKFLOW}/projects/sample-python/project.json\"",
+        "crap": "node \"{WORKFLOW}/gates/test-strength/cli.ts\" crap --runner python src",
+        "mutation": "node \"{WORKFLOW}/gates/test-strength/cli.ts\" mutation --runner python --base {BASE} src",
+        "sast": "node \"{WORKFLOW}/gates/sast/cli.ts\" --base {BASE}",
+        "secret-scan": "node \"{WORKFLOW}/gates/secret-scan/cli.ts\" --base {BASE}",
+        "hidden-unicode": "node \"{WORKFLOW}/gates/hidden-unicode/cli.ts\" --base {BASE}",
+        "supply-chain": "node \"{WORKFLOW}/gates/supply-chain/cli.ts\" --base {BASE} --lockfile uv.lock"
+      }
+    }
+  }
+}

@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { isTestFile } from './test-files.ts';
 
 describe('isTestFile', () => {
-  it.each(['a.test.ts', 'src/a.test.tsx', 'a.test.js', 'a.test.mjs', 'a.test.cts', 'a.spec.ts', 'src/a.spec.jsx', 'a.integration.test.ts'])('reads %s as a test file', (p) => {
+  it.each(['a.test.ts', 'src/a.test.tsx', 'a.test.js', 'a.test.mjs', 'a.test.cts', 'a.spec.ts', 'src/a.spec.jsx', 'a.integration.test.ts', 'tests/test_grades.py', 'test_a.py', 'pkg/grades_test.py'])('reads %s as a test file', (p) => {
     expect(isTestFile(p)).toBe(true);
   });
 
-  it.each(['a.ts', 'test.ts', 'a.test.ts.bak', 'a.testx.ts', 'a.test.json', 'node_modules/x/a.test.ts', 'a/node_modules/b.spec.ts', 'atest.ts'])('does not read %s as a test file', (p) => {
+  it.each(['a.ts', 'test.ts', 'a.test.ts.bak', 'a.testx.ts', 'a.test.json', 'node_modules/x/a.test.ts', 'a/node_modules/b.spec.ts', 'atest.ts', 'grades.py', 'tests/conftest.py', 'src/contest.py', 'test_a.pyc', 'mytest_a.py', '.venv/lib/test_x.py'])('does not read %s as a test file', (p) => {
     expect(isTestFile(p)).toBe(false);
   });
 });

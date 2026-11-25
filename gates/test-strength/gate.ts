@@ -6,7 +6,8 @@
 //   complexity and an untested one is punished cubically;
 // - mutation: every mutant on the named paths is killed (or timed out, or did not compile), and an
 //   ignored one sits under a line-level `disable next-line <mutator>: <reason>` naming it (ticket 74).
-// cli.ts wires in the adapter the runner names (adapters/js-ts, or adapters/dotnet for `dotnet`);
+// cli.ts wires in the adapter the runner names (adapters/js-ts, adapters/dotnet for `dotnet`, or
+// adapters/python for `python`, ticket 99);
 // this module decides.
 
 import { parseArgs } from 'node:util';
@@ -15,22 +16,24 @@ import { suppressionReason } from '../onkel/suppressions.ts';
 import type { FunctionLines, FunctionRef, Mutant, TestStrengthAdapter } from './contract.ts';
 
 export const CRAP_CEILING = 6;
-export const RUNNERS = ['vitest', 'jest', 'karma', 'dotnet'] as const;
+export const RUNNERS = ['vitest', 'jest', 'karma', 'dotnet', 'python'] as const;
 export type Runner = (typeof RUNNERS)[number];
-/** The runners adapters/js-ts drives; `dotnet` is adapters/dotnet's (ticket 30). */
-export type JsRunner = Exclude<Runner, 'dotnet'>;
+/** The runners adapters/js-ts drives; `dotnet` is adapters/dotnet's (ticket 30), `python` adapters/python's (ticket 99). */
+export type JsRunner = Exclude<Runner, 'dotnet' | 'python'>;
 
 /** What a gate's adapter is made from: the test runner, the project folder, a coverage file it already has. */
 export interface AdapterOptions<R extends Runner = Runner> {
   runner: R;
   cwd: string;
   coverageFile: string | undefined;
+  /** The ticket's base: the Python adapter holds mutation to the lines changed since it. */
+  base?: string | undefined;
 }
 
 /** One AdapterOptions per runner, so checking `runner` narrows the whole options to one adapter's. */
 export type AnyAdapterOptions = { [R in Runner]: AdapterOptions<R> }[Runner];
 
-const USAGE = 'usage: test-strength <crap|mutation> [--runner vitest|jest|karma|dotnet] [--cwd <dir>] [--coverage <coverage-final.json|coverage.cobertura.xml>] [--ceiling <n>] <path...>';
+const USAGE = 'usage: test-strength <crap|mutation> [--runner vitest|jest|karma|dotnet|python] [--cwd <dir>] [--coverage <coverage-final.json|coverage.cobertura.xml|coverage.json>] [--ceiling <n>] [--base <ref>] <path...>';
 // Stryker's statuses that mean a test noticed the mutant.
 const DETECTED = new Set(['Killed', 'Timeout', 'CompileError']);
 
@@ -88,12 +91,12 @@ function parse(args: string[]) {
   const { values, positionals } = parseArgs({
     args,
     allowPositionals: true,
-    options: { runner: { type: 'string', default: 'vitest' }, cwd: { type: 'string', default: '.' }, coverage: { type: 'string' }, ceiling: { type: 'string' } },
+    options: { runner: { type: 'string', default: 'vitest' }, cwd: { type: 'string', default: '.' }, coverage: { type: 'string' }, ceiling: { type: 'string' }, base: { type: 'string' } },
   });
   const [gate, ...paths] = positionals;
   const ceiling = Number(values.ceiling ?? CRAP_CEILING);
   if (!['crap', 'mutation'].includes(gate!) || paths.length === 0 || !isRunner(values.runner) || Number.isNaN(ceiling)) throw new Error(USAGE);
-  const options: AnyAdapterOptions = { runner: values.runner, cwd: values.cwd, coverageFile: values.coverage };
+  const options: AnyAdapterOptions = { runner: values.runner, cwd: values.cwd, coverageFile: values.coverage, base: values.base };
   return { gate, paths, ceiling, options };
 }
 

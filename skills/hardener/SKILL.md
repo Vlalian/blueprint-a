@@ -20,6 +20,14 @@ change the code.
    You may run your project's checks yourself (the test command, lint, typecheck: the commands your
    tools allow), alone, with nothing after them but the test files you name
    (`npm test -- src/lib/slugify.test.ts`).
+   On a Python project the dispatcher runs the test-strength checks (`--runner python`) in onkel's
+   place: pytest and coverage.py for CRAP, cosmic-ray for mutants, each survivor named by file,
+   line and cosmic-ray operator (`core/ReplaceComparisonOperator_Lt_LtE`). Run its tests the same
+   way, with the project's test command (`node "<Workflow root>/adapters/python/run.ts" -m pytest
+   tests/test_slugify.py` runs the same Python the gates use). Property tests there use
+   Hypothesis, in `tests/test_<module>_properties.py`, when the project has it. cosmic-ray reads no
+   suppression comment, so a Python mutant that SIMPLIFY cannot remove escalates instead of a
+   SUPPRESS block (rule 7).
 3. For each surviving mutant, write the example test that tells the original from the mutant:
    an input where they give different results, and an assertion on the result the plan gives.
    One test per behaviour it pins down, named for that behaviour.

@@ -41,28 +41,67 @@ test. They need Node only (TypeScript runs as is) and no particular agent harnes
 | Contract | Folder | What it needs |
 |---|---|---|
 | C1 Four checks | `gates/four-checks` | The project's lint, typecheck, test and build commands |
-| C1 Skipped tests are not green | `gates/four-checks/skips-cli.ts` | git and the test command's JSON report (vitest) |
+| C1 Skipped tests are not green | `gates/four-checks/skips-cli.ts` | git and the test command's JSON report (vitest, Jest) or JUnit XML report (pytest `--junitxml`) |
 | C2 Secret scan | `gates/secret-scan` | git |
 | C3 Hidden Unicode | `gates/hidden-unicode` | git |
-| C4 Import boundaries | `gates/boundaries` | dependency-cruiser (JS/TS) |
-| C5 Duplication | `gates/duplication` | git and jscpd (a dev dependency of this package) |
-| D1 Red check | `gates/red-check` | git and the test command |
+| C4 Import boundaries | `gates/boundaries` | dependency-cruiser (JS/TS); import-linter with `--python` (the project's contracts) |
+| C5 Duplication | `gates/duplication` | git and jscpd (a dev dependency of this package; it reads Python too) |
+| D1 Red check | `gates/red-check` | git and the test command; for pytest, its JUnit XML report (`--junit`) |
 | D2 Test-deletion guard | `gates/test-deletion` | git |
-| No debug leftovers | `gates/debug-leftovers` | git; fails on an added `console.log`, `console.debug` or `debugger` line outside tests |
-| C6 Security rules (SAST) | `gates/sast` | git and Semgrep 1.179.0 (`pip install semgrep==1.179.0`); the pinned TypeScript, JavaScript and C# rules, copied in as `gates/sast/rules/README.md` says |
-| D3 CRAP and mutation, through a language adapter | `gates/test-strength` with `adapters/js-ts` or `adapters/dotnet` | The adapter's tools: Stryker plus vitest, Jest or Karma for JS/TS; the .NET SDK, coverlet and Stryker.NET for .NET |
+| No debug leftovers | `gates/debug-leftovers` | git; fails on an added `console.log`, `console.debug` or `debugger` line, or a Python `print(`, `breakpoint(` or pdb line, outside tests |
+| C6 Security rules (SAST) | `gates/sast` | git and Semgrep 1.179.0 (`pip install semgrep==1.179.0`); the pinned TypeScript, JavaScript and C# rules, copied in as `gates/sast/rules/README.md` says; bandit for Python files |
+| D3 CRAP and mutation, through a language adapter | `gates/test-strength` with `adapters/js-ts`, `adapters/dotnet` or `adapters/python` | The adapter's tools: Stryker plus vitest, Jest or Karma for JS/TS; the .NET SDK, coverlet and Stryker.NET for .NET; pytest, coverage.py 7.10 or later, radon and cosmic-ray 8.9.0 for Python |
 | D3 CRAP and mutation, scoped to changed lines (vitest projects) | `gates/onkel`; `gates/hardener/gate.ts` runs it on a change | Stryker and vitest |
 | D5 Canary | `gates/canary` | vitest; the folders to search in `config/canary.json` (default `gates` and `adapters`) |
 | E1 Plan gate | `gates/plan` | The plan and ticket files |
 | F1 CI green on the exact commit | `gates/ci-on-sha/gate.ts` with `adapters/host` | The host: GitHub through the `gh` CLI, or Azure DevOps through its REST API and a personal access token in `AZURE_DEVOPS_PAT` |
-| F4 Supply-chain scan | `gates/supply-chain` | git, an npm lockfile (v2 or v3) and the exceptions in `config/supply-chain.json` |
+| F4 Supply-chain scan | `gates/supply-chain` | git, an npm lockfile (v2 or v3) and the exceptions in `config/supply-chain.json`; for Python (`--lockfile uv.lock`, `poetry.lock`, `requirements*.txt` or `pyproject.toml`), pip-audit |
 | F5 Walk gate | `gates/walk` with `gates/evidence` | The walk report, its media and the exact head and patch-id; see [08-previews-kubernetes.md](08-previews-kubernetes.md) |
 
 `gates/test-strength` reads only an **adapter interface** with three calls:
 `coverage(paths)` gives each function's lines and how many the tests ran, `complexity(paths)`
 each function's cyclomatic complexity, `mutate(paths)` each mutant with its status. The gates
 judge; the adapter measures. A new language needs a new adapter, not a new gate: from v0.2,
-`adapters/dotnet` measures .NET with coverlet and Stryker.NET (`--runner dotnet`).
+`adapters/dotnet` measures .NET with coverlet and Stryker.NET (`--runner dotnet`); from v1.1,
+`adapters/python` measures Python with coverage.py, radon and cosmic-ray (`--runner python`).
+
+### Python projects (from v1.1)
+
+The Python tools are the project's dev dependencies, never this package's. Every Python gate finds
+them in the scripts folder of the project's Python: `WORKFLOW_PYTHON` when set, else the `.venv`
+of the project folder or the nearest folder above it, else `python3` or `python` on PATH; a Python
+older than 3.10 is passed over. A missing Python or tool is exit 2, naming the interpreter, its
+version, the tool and its `pip install` command. A role command runs that same Python through
+`node "{WORKFLOW}/adapters/python/run.ts" -m <tool> …`, never a path of its own.
+`projects/sample-python/project.json` wires every role's checks for a Python project, and
+`templates/ci/python-github.yml` and `templates/ci/python-azure.yml` run ruff, mypy, pytest,
+bandit, Semgrep's `p/python` rules and pip-audit in CI.
+
+- **CRAP and mutation** (`--runner python`): coverage from coverage.py's JSON report (its
+  per-function regions), complexity from `radon cc -j`, joined by each function's first line;
+  mutants from cosmic-ray, with its baseline run first. A failed baseline, or any mutant cosmic-ray
+  calls incompetent (the test command never ran), is exit 2, never a pass, and so is a Python
+  without pytest. A path may be a folder. With `--base <ref>` only the files a change touched since
+  that ref are mutated, and only the mutants on its changed lines count (untracked files whole), so
+  a survivor in code the change never touched does not fail it.
+- **Red check:** `--junit` adds `--junitxml` to the test command, at the red check's own path in the
+  base checkout, and reads that report. A collection error importing the project's own code that
+  is not written yet (a module or a name in its `src/` or root packages) is red, as test-first asks;
+  any other collection error is not. `{CWD}` in the test command is the worktree.
+- **Test-deletion guard:** reads pytest files too: module-level and `class Test*` test functions
+  (`Class::test_name`), a skipped one counting as deleted.
+- **Skipped tests:** a `<skipped>` test case in the JUnit report counts as skipped.
+- **Debug leftovers:** an added `print(`, `breakpoint(` or pdb line in a `.py` file outside tests
+  and `conftest.py`.
+- **Import boundaries:** `--python` runs import-linter on the project's contracts, with `src` on
+  PYTHONPATH when it exists; no contract at all is exit 2.
+- **SAST:** bandit on the changed `.py` files; HIGH and MEDIUM block, LOW is reported. A `# nosec`
+  must name the bandit test and give a reason (`# nosec B602 -- <reason>`). Semgrep's `p/python`
+  runs in CI on Linux, where Semgrep is not experimental.
+- **Supply chain:** pip-audit on the registry packages a `uv.lock`, `poetry.lock` or pinned
+  requirements file names: a vulnerable package that is new since the base blocks, one already
+  there is reported. `pyproject.toml` or an unpinned requirements file is audited whole, every
+  vulnerability blocking.
 
 ---
 

@@ -7,6 +7,7 @@
 // out or quoted in a string is no test (ticket 74).
 
 import ts from 'typescript';
+import { pytestCases } from './pytest.ts';
 
 export interface DeletedTest {
   file: string;
@@ -63,8 +64,9 @@ function callStarts(source: string, file: string): Set<number> {
 /** The matches of a pattern that start a call the parser found: none in a comment or a string. */
 const calls = (pattern: RegExp, text: string, starts: Set<number>) => [...text.matchAll(pattern)].filter((m) => starts.has(m.index));
 
-/** The tests a file holds; its name tells the parser how to read it (`.tsx`, `.js`). */
+/** The tests a file holds; its name tells the parser how to read it (`.tsx`, `.js`, a pytest `.py`). */
 export function testCases(source: string, file: string): TestCase[] {
+  if (file.endsWith('.py')) return pytestCases(source);
   const starts = callStarts(source, file);
   // The text with every switched-off group blanked out; a test call still found there is on.
   const shown = offGroups(source, starts).reduce((text, [from, to]) => text.slice(0, from) + ' '.repeat(to - from) + text.slice(to), source);

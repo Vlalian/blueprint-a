@@ -23,7 +23,8 @@ export type SupplyChainResult = GateResult & { changed?: string[]; findings?: st
 
 const USAGE = 'usage: supply-chain --base <ref> | --base-file <lockfile> [--lockfile package-lock.json] [--allowlist config/supply-chain.json]';
 
-function fromRef(ref: string | undefined, lockfile: string, io: SupplyChainIo): string | undefined {
+/** The lockfile at a git ref; undefined when the ref has none (every package is new). */
+export function fromRef(ref: string | undefined, lockfile: string, io: SupplyChainIo): string | undefined {
   if (!ref) throw new Error(USAGE);
   // Arguments go to git without a shell, but git would still read a leading dash as an option.
   if (ref.startsWith('-')) throw new Error(`not a git ref: ${ref}`);

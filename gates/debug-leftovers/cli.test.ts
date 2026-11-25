@@ -3,6 +3,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { BITES, proveItBites } from '../../test/helpers/prove-it-bites.ts';
 
 // Spawns processes: under a full-suite load on Windows they run several times slower (ticket 29).
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -48,6 +49,18 @@ describe('debug-leftovers CLI', () => {
       { file: 'b.ts', line: 1, text: 'debugger;' },
     ]);
     expect(cli(['--base', base, '--cwd', dir, '--config', config(['*.ts'])]).status).toBe(0);
+  });
+
+  it('bites on Python: an added print( in source fails, the revert passes (ticket 99)', () => {
+    const { dir, base } = repo();
+    const source = join(dir, 'orders.py');
+    const result = proveItBites({
+      gate: 'debug-leftovers',
+      run: () => cli(['--base', base, '--cwd', dir, '--config', config()]).status ?? -1,
+      inject: () => writeFileSync(source, 'def total(xs):\n    print(xs)\n    return sum(xs)\n'),
+      revert: () => writeFileSync(source, 'def total(xs):\n    return sum(xs)\n'),
+    });
+    expect(result).toEqual(BITES);
   });
 
   it('exits 2 when there is no diff against the base, and on a usage error', () => {

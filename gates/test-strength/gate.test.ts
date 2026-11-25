@@ -178,7 +178,7 @@ describe('testStrengthGate', () => {
   });
 
   it('refuses an unknown gate, an unknown runner, a bad ceiling or no paths', () => {
-    const usage = /usage: test-strength <crap\|mutation> \[--runner vitest\|jest\|karma\|dotnet\]/;
+    const usage = /usage: test-strength <crap\|mutation> \[--runner vitest\|jest\|karma\|dotnet\|python\]/;
     expect(() => testStrengthGate(['speed', 'src/a.ts'], factory({}), NO_SOURCE)).toThrow(usage);
     expect(() => testStrengthGate(['crap', '--runner', 'mocha', 'src/a.ts'], factory({}), NO_SOURCE)).toThrow(usage);
     expect(() => testStrengthGate(['crap'], factory({}), NO_SOURCE)).toThrow(usage);

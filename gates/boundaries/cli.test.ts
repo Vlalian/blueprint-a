@@ -69,6 +69,13 @@ describe('boundaries CLI', () => {
     expect(r.status).toBe(0);
   });
 
+  it('exits 2 and says what to install with --python when there is no Python (ticket 99)', () => {
+    const empty = mkdtempSync(join(tmpdir(), 'boundaries-'));
+    const r = spawnSync(process.execPath, [CLI, '--python', '--cwd', empty], { encoding: 'utf8', env: { ...process.env, PATH: empty, Path: empty, WORKFLOW_PYTHON: '' } });
+    expect(r.status).toBe(2);
+    expect(JSON.parse(r.stdout)).toMatchObject({ gate: 'boundaries', pass: false, error: expect.stringMatching(/^Python 3\.10 or later was not found/) });
+  });
+
   it('exits 2 when dependency-cruiser cannot run (a path that does not exist, a config that does not)', () => {
     const dir = fixtureCopy();
     expect(run(dir, 'nothere').status).toBe(2);

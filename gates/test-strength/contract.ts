@@ -2,7 +2,8 @@
 // adapter per language ecosystem measures, the gates in gate.ts judge. The gates never run a test
 // runner, a coverage tool or a mutation tester themselves, so a new language needs a new adapter
 // and no change here. adapters/js-ts implements it for JavaScript and TypeScript with Stryker and
-// vitest, Jest or Karma; adapters/dotnet for .NET with coverlet and Stryker.NET (ticket 30).
+// vitest, Jest or Karma; adapters/dotnet for .NET with coverlet and Stryker.NET (ticket 30);
+// adapters/python for Python with coverage.py, radon and cosmic-ray (ticket 99).
 
 /** Where a function sits: the same four fields in every measurement, so rows can be matched. */
 export interface FunctionRef {

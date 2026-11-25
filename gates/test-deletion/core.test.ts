@@ -23,6 +23,85 @@ describe('testTitles', () => {
   });
 });
 
+describe('testCases on pytest files (ticket 99)', () => {
+  const SRC = [
+    'import pytest',
+    '',
+    'def helper():',
+    '    pass',
+    '',
+    'def test_adds():',
+    '    assert 1 + 1 == 2',
+    '',
+    'async def test_waits():',
+    '    pass',
+    '',
+    '@pytest.mark.skip(reason="later")',
+    'def test_later():',
+    '    pass',
+    '',
+    '@pytest.mark.parametrize("n", [1, 2])',
+    'def test_each(n):',
+    '    assert n',
+    '',
+    'class TestOdd:',
+    '    def test_one(self):',
+    '        assert True',
+    '',
+    '    @pytest.mark.skipif(True, reason="x")',
+    '    def test_two(self):',
+    '        def test_nested_is_no_test():',
+    '            pass',
+    '',
+    '@pytest.mark.skip',
+    'class TestOff:',
+    '    def test_three(self):',
+    '        pass',
+    '',
+    'def test_last():',
+    '    """def test_in_a_docstring(): no test"""',
+    '',
+  ].join('\n');
+
+  it('finds module-level and class test functions, named as pytest names them, with skipped ones switched off', () => {
+    expect(testCases(SRC, 'tests/test_math.py')).toEqual([
+      { title: 'test_adds', active: true },
+      { title: 'test_waits', active: true },
+      { title: 'test_later', active: false },
+      { title: 'test_each', active: true },
+      { title: 'TestOdd::test_one', active: true },
+      { title: 'TestOdd::test_two', active: false },
+      { title: 'TestOff::test_three', active: false },
+      { title: 'test_last', active: true },
+    ]);
+  });
+
+  it('counts one test function deleted from a file that is kept', () => {
+    const base = { 'tests/test_math.py': SRC };
+    const head = { 'tests/test_math.py': SRC.replace('def test_adds():\n    assert 1 + 1 == 2\n', '') };
+    expect(deletedTests(base, head, [])).toEqual([{ file: 'tests/test_math.py', title: 'test_adds' }]);
+    expect(deletedTests(base, head, ['tests/test_math.py::test_adds'])).toEqual([]);
+  });
+
+  it('recognises unittest and bare skips while leaving similarly named decorators active', () => {
+    const source = [
+      '@unittest.skip("disabled")', 'def test_unit(): pass',
+      '@skipif(False)', '# a comment', '', '@another',
+      'async   def   test_bare   (): pass',
+      '@skip_extra', 'def test_active(): pass',
+      'class TestGroup:', '    def helper(self):', '        def test_nested(): pass',
+      '    def test_1(self): pass',
+      'class Other:', '    def test_not_collected(self): pass',
+    ].join('\r\n');
+    expect(testCases(source, 'tests/test_more.py')).toEqual([
+      { title: 'test_unit', active: false },
+      { title: 'test_bare', active: false },
+      { title: 'test_active', active: true },
+      { title: 'TestGroup::test_1', active: true },
+    ]);
+  });
+});
+
 describe('deletedTests', () => {
   const base = {
     'tests/a.test.ts': "it('one', () => {});\nit('two', () => {});",
@@ -173,4 +252,27 @@ describe('testCases', () => {
   it('runs a skipped group to the end of the file when its call never closes', () => {
     expect(testCases("describe.skip('g', () => { it('a', () => {});", 'a.test.ts')).toEqual([{ title: 'a', active: false }]);
   });
+});
+
+it('reads pytest declarations with Python whitespace and respects decorator boundaries', () => {
+  const source = [
+    'def   test_plain ():', '    pass',
+    'async  def  test_async():', '    pass',
+    'prefix = "def test_fake():"',
+    'text = "class TestFake:"', '    def test_nested(): pass',
+    'class  TestGroup:', '    @pytest.mark.skip', '    def test_disabled(): pass',
+    '    @unittest.skipIf', '    def test_enabled(): pass',
+    '    @pytest.mark.skipif(True, reason="offline")', '    def test_conditional(): pass',
+    '    @skip', '    def test_bare_skip(): pass',
+    '    @pytest.mark.usefixtures("@skip")', '    def test_other_decorator(): pass',
+  ].join('\n');
+  expect(testCases(source, 'test_app.py')).toEqual([
+    { title: 'test_plain', active: true },
+    { title: 'test_async', active: true },
+    { title: 'TestGroup::test_disabled', active: false },
+    { title: 'TestGroup::test_enabled', active: true },
+    { title: 'TestGroup::test_conditional', active: false },
+    { title: 'TestGroup::test_bare_skip', active: false },
+    { title: 'TestGroup::test_other_decorator', active: true },
+  ]);
 });

@@ -1,0 +1,153 @@
+{
+ "dependencies": [
+  {
+   "name": "requests",
+   "version": "2.19.0",
+   "vulns": [
+    {
+     "id": "PYSEC-2018-28",
+     "fix_versions": [
+      "2.20.0"
+     ],
+     "aliases": [
+      "GHSA-x84v-xcm2-53pg",
+      "CVE-2018-18074"
+     ],
+     "description": "The Requests package before 2.20.0 for Python sends an HTTP "
+    },
+    {
+     "id": "PYSEC-2018-28",
+     "fix_versions": [
+      "2.20.0"
+     ],
+     "aliases": [
+      "GHSA-x84v-xcm2-53pg",
+      "CVE-2018-18074"
+     ],
+     "description": "The Requests package through 2.19.1 before 2018-09-14 for Py"
+    },
+    {
+     "id": "PYSEC-2023-74",
+     "fix_versions": [
+      "2.31.0"
+     ],
+     "aliases": [
+      "GHSA-j8r2-6x86-q33q",
+      "CVE-2023-32681"
+     ],
+     "description": "### Impact  Since Requests v2.3.0, Requests has been vulnera"
+    },
+    {
+     "id": "PYSEC-2023-74",
+     "fix_versions": [
+      "2.31.0"
+     ],
+     "aliases": [
+      "GHSA-j8r2-6x86-q33q",
+      "CVE-2023-32681"
+     ],
+     "description": "Requests is a HTTP library. Since Requests 2.3.0, Requests h"
+    },
+    {
+     "id": "PYSEC-2026-1873",
+     "fix_versions": [
+      "2.32.0"
+     ],
+     "aliases": [
+      "CVE-2024-35195",
+      "GHSA-9wx4-h78v-vm56"
+     ],
+     "description": "When using a `requests.Session`, if the first request to a g"
+    },
+    {
+     "id": "PYSEC-2026-1872",
+     "fix_versions": [
+      "2.32.4"
+     ],
+     "aliases": [
+      "GHSA-9hjg-9r4m-mvj7",
+      "CVE-2024-47081"
+     ],
+     "description": "### Impact  Due to a URL parsing issue, Requests releases pr"
+    },
+    {
+     "id": "PYSEC-2026-2275",
+     "fix_versions": [
+      "2.33.0"
+     ],
+     "aliases": [
+      "CVE-2026-25645",
+      "GHSA-gc5v-m9x4-r6x2"
+     ],
+     "description": "### Impact The `requests.utils.extract_zipped_paths()` utili"
+    },
+    {
+     "id": "PYSEC-2026-1873",
+     "fix_versions": [
+      "2.32.0"
+     ],
+     "aliases": [
+      "CVE-2024-35195",
+      "GHSA-9wx4-h78v-vm56"
+     ],
+     "description": "When using a `requests.Session`, if the first request to a g"
+    },
+    {
+     "id": "PYSEC-2026-1872",
+     "fix_versions": [
+      "2.32.4"
+     ],
+     "aliases": [
+      "GHSA-9hjg-9r4m-mvj7",
+      "CVE-2024-47081"
+     ],
+     "description": "### Impact  Due to a URL parsing issue, Requests releases pr"
+    },
+    {
+     "id": "PYSEC-2026-2275",
+     "fix_versions": [
+      "2.33.0"
+     ],
+     "aliases": [
+      "CVE-2026-25645",
+      "GHSA-gc5v-m9x4-r6x2"
+     ],
+     "description": "Requests is a HTTP library. Prior to version 2.33.0, the `re"
+    }
+   ]
+  },
+  {
+   "name": "idna",
+   "version": "3.7",
+   "vulns": [
+    {
+     "id": "PYSEC-2026-215",
+     "fix_versions": [
+      "3.15"
+     ],
+     "aliases": [
+      "GHSA-65pc-fj4g-8rjx",
+      "CVE-2026-45409"
+     ],
+     "description": "This is the same issue as CVE-2024-3651, however the origina"
+    },
+    {
+     "id": "PYSEC-2026-215",
+     "fix_versions": [
+      "3.15"
+     ],
+     "aliases": [
+      "GHSA-65pc-fj4g-8rjx",
+      "CVE-2026-45409"
+     ],
+     "description": "Internationalized Domain Names in Applications (IDNA) for Py"
+    }
+   ]
+  },
+  {
+   "name": "not-a-real-pkg-xyz-123",
+   "skip_reason": "Dependency not found on PyPI and could not be audited: not-a-real-pkg-xyz-123 (1.0)"
+  }
+ ],
+ "fixes": []
+}

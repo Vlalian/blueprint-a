@@ -1,6 +1,6 @@
 # MIRROR
 
-Blueprint A **v1.0.0**, exported one way from the reference repository at commit `5cf0e59cbc68` by its
+Blueprint A **v1.1.0**, exported one way from the reference repository at commit `5688f4dca517` by its
 `scripts/export-blueprint-a.ts`. Do not change files here: change them in the reference and export
 again.
 
@@ -116,6 +116,16 @@ again.
 | `gates/hardener/cli.ts` | `gates/hardener/cli.ts` |
 | `gates/ci-on-sha/cli.ts` | `gates/ci-on-sha/cli.ts` |
 | `gates/ci-on-sha/host-io.ts` | `gates/ci-on-sha/host-io.ts` |
+| `adapters/python` | `adapters/python` |
+| `fixtures/python-sample` | `fixtures/python-sample` |
+| `gates/sast/bandit.ts` | `gates/sast/bandit.ts` |
+| `gates/sast/bandit.test.ts` | `gates/sast/bandit.test.ts` |
+| `gates/sast/bandit.integration.test.ts` | `gates/sast/bandit.integration.test.ts` |
+| `test/helpers/python-tools.ts` | `test/helpers/python-tools.ts` |
+| `test/fixtures/supply-chain` | `test/fixtures/supply-chain` |
+| `test/fixtures/red-check` | `test/fixtures/red-check` |
+| `templates/ci` | `templates/ci` |
+| `projects/sample-python/project.json` | `projects/sample-python/project.json` |
 
 ## Left out, and why
 
@@ -155,7 +165,7 @@ again.
 - the project ticket family: replaced in 0 places.
 - the project name stem: replaced in 0 places.
 - the owner's account name: replaced in 1 places.
-- the owner's machine username: replaced in 0 places.
+- the owner's machine username: replaced in 2 places.
 - the owner's surname: replaced in 0 places.
 - a Windows user-folder example in a gate test: replaced in 2 places.
 
@@ -188,3 +198,4 @@ Still marked "(to confirm after the pilot)":
 | 0.8.0 | 2026-10-21 | The gate runner (runner/): the self-gate that runs every gate in one command (typecheck, unit, integration, locked files, onkel's CRAP and mutation on the changed lines, and in merge mode Semgrep), its merge mode trusting a CI report at the exact commit (the report folder, the trusted checks, the ungraded paths and the CI variable are configuration) so a merge mutates only the lines the merge itself changed, the test selection over dependency-cruiser's graph plus the paths tests name (shared ground such as the lockfile selects every test), the whole-suite full run with its selection misses, the check-tree cache for a project's own checks (runner/runner-checks.ts: tree hash, check name, command and env-file hash), the portability and spawn-timeout checks, the package check, the pre-commit renderer, the single-writer lock, the function registry and ledger, the gate metrics and the tempo stats with the observation log they read. Everything tied to a repo is config/runner.json (integration branch, source and graph folders, whole-suite paths, integration tests, CRAP limit, Stryker config, shells, state folder, checks), each with a documented default; a repo's own merge check plugs in through mergeCheck. docs/12-runner.md says how to run it locally, in a pre-commit hook and in an Azure DevOps or GitHub pipeline. |
 | 0.9.0 | 2026-10-21 | The flow tools (flow/, node flow/cli.ts <tool>): status with the builds in flight against the build cap, every model family counted together; the gate queue running config/flow.json's gate commands one gate at a time; build and review through one model-run, each family a build and a review command in config/flow.json, so Codex, Claude Code, opencode or a local model plug in alike, and the other-family rule: a round is reviewed by a configured family other than the one that built it, and the merge refuses a round reviewed only by its builder's family; the merge after the owner's yes, a green gate and that review, then the base into every open ticket branch (base-into), each typechecked in its own worktree and never force-pushed; the draft PR, the CI watch on one exact commit and the SHA ledger on GitHub or Azure DevOps through adapters/host; the queue, the evaluation, the gate lessons and the dispatcher modules they read (learn, tickets, run-guard, workflow-config, owner-choice, decisions); flow apply-lessons, which writes each lesson the owner accepted in the decisions file to the configured directives file, a skill or a gate ticket draft, with its approval id. Model and gate commands get their placeholders as environment variables, never in the command line, and the gate lock is one file under git's common directory for every worktree. config/flow.json holds the integration branch, the build cap (3), the owner, the ticket folder, the host, the families and the commands, and the lessons' decisions file, waiting folder, directives file and skills folder, each with a documented default (docs/02-flow-and-roles.md); 11-optimisations.md items 5-7 point at the code. |
 | 1.0.0 | 2026-11-14 | Breaking change (ticket 98): the dispatch router and all twelve role skills, including evals, replace the retired flow/ scripts. Keep the quality gates as code; remove the deleted guards, format gates, SonarQube, function registry, ledger, metrics and tempo tooling. Scrub private names during export; update the flow and runner documentation. |
+| 1.1.0 | 2026-11-25 | Python support (ticket 99): adapters/python (coverage.py per-function coverage, radon complexity joined by line range, cosmic-ray mutation scoped to the changed lines, a failed baseline or any incompetent mutant is "could not run"); pytest JUnit in the red check and the skipped-tests guard (a missing in-project module counts as red); Python debug leftovers (print, breakpoint, pdb); pytest test functions in the test-deletion guard; Python lockfiles in supply chain through pip-audit; import-linter boundaries; jscpd Python duplication; bandit SAST locally and Semgrep p/python in CI; a missing tool exits 2 naming its install command; projects/sample-python/project.json and CI templates for GitHub Actions and Azure DevOps. |

@@ -1,0 +1,287 @@
+{
+    "meta": {
+        "format": 3,
+        "version": "7.17.5",
+        "timestamp": "2026-11-24T16:43:19.989402",
+        "branch_coverage": false,
+        "show_contexts": false
+    },
+    "files": {
+        "src\\sample\\__init__.py": {
+            "executed_lines": [],
+            "summary": {
+                "covered_lines": 0,
+                "num_statements": 0,
+                "percent_covered": 100.0,
+                "percent_covered_display": "100",
+                "missing_lines": 0,
+                "excluded_lines": 0,
+                "percent_statements_covered": 100.0,
+                "percent_statements_covered_display": "100"
+            },
+            "missing_lines": [],
+            "excluded_lines": [],
+            "functions": {
+                "": {
+                    "executed_lines": [],
+                    "summary": {
+                        "covered_lines": 0,
+                        "num_statements": 0,
+                        "percent_covered": 100.0,
+                        "percent_covered_display": "100",
+                        "missing_lines": 0,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 100.0,
+                        "percent_statements_covered_display": "100"
+                    },
+                    "missing_lines": [],
+                    "excluded_lines": [],
+                    "start_line": 1
+                }
+            },
+            "classes": {
+                "": {
+                    "executed_lines": [],
+                    "summary": {
+                        "covered_lines": 0,
+                        "num_statements": 0,
+                        "percent_covered": 100.0,
+                        "percent_covered_display": "100",
+                        "missing_lines": 0,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 100.0,
+                        "percent_statements_covered_display": "100"
+                    },
+                    "missing_lines": [],
+                    "excluded_lines": [],
+                    "start_line": 1
+                }
+            }
+        },
+        "src\\sample\\grades.py": {
+            "executed_lines": [],
+            "summary": {
+                "covered_lines": 0,
+                "num_statements": 11,
+                "percent_covered": 0.0,
+                "percent_covered_display": "0",
+                "missing_lines": 11,
+                "excluded_lines": 0,
+                "percent_statements_covered": 0.0,
+                "percent_statements_covered_display": "0"
+            },
+            "missing_lines": [
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                14,
+                15,
+                16
+            ],
+            "excluded_lines": [],
+            "functions": {
+                "grade": {
+                    "executed_lines": [],
+                    "summary": {
+                        "covered_lines": 0,
+                        "num_statements": 7,
+                        "percent_covered": 0.0,
+                        "percent_covered_display": "0",
+                        "missing_lines": 7,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 0.0,
+                        "percent_statements_covered_display": "0"
+                    },
+                    "missing_lines": [
+                        5,
+                        6,
+                        7,
+                        8,
+                        9,
+                        10,
+                        11
+                    ],
+                    "excluded_lines": [],
+                    "start_line": 4
+                },
+                "Report.grade": {
+                    "executed_lines": [],
+                    "summary": {
+                        "covered_lines": 0,
+                        "num_statements": 1,
+                        "percent_covered": 0.0,
+                        "percent_covered_display": "0",
+                        "missing_lines": 1,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 0.0,
+                        "percent_statements_covered_display": "0"
+                    },
+                    "missing_lines": [
+                        16
+                    ],
+                    "excluded_lines": [],
+                    "start_line": 15
+                },
+                "": {
+                    "executed_lines": [],
+                    "summary": {
+                        "covered_lines": 0,
+                        "num_statements": 3,
+                        "percent_covered": 0.0,
+                        "percent_covered_display": "0",
+                        "missing_lines": 3,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 0.0,
+                        "percent_statements_covered_display": "0"
+                    },
+                    "missing_lines": [
+                        4,
+                        14,
+                        15
+                    ],
+                    "excluded_lines": [],
+                    "start_line": 1
+                }
+            },
+            "classes": {
+                "Report": {
+                    "executed_lines": [],
+                    "summary": {
+                        "covered_lines": 0,
+                        "num_statements": 1,
+                        "percent_covered": 0.0,
+                        "percent_covered_display": "0",
+                        "missing_lines": 1,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 0.0,
+                        "percent_statements_covered_display": "0"
+                    },
+                    "missing_lines": [
+                        16
+                    ],
+                    "excluded_lines": [],
+                    "start_line": 14
+                },
+                "": {
+                    "executed_lines": [],
+                    "summary": {
+                        "covered_lines": 0,
+                        "num_statements": 10,
+                        "percent_covered": 0.0,
+                        "percent_covered_display": "0",
+                        "missing_lines": 10,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 0.0,
+                        "percent_statements_covered_display": "0"
+                    },
+                    "missing_lines": [
+                        4,
+                        5,
+                        6,
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        14,
+                        15
+                    ],
+                    "excluded_lines": [],
+                    "start_line": 1
+                }
+            }
+        },
+        "src\\sample\\parity.py": {
+            "executed_lines": [
+                4,
+                5
+            ],
+            "summary": {
+                "covered_lines": 2,
+                "num_statements": 2,
+                "percent_covered": 100.0,
+                "percent_covered_display": "100",
+                "missing_lines": 0,
+                "excluded_lines": 0,
+                "percent_statements_covered": 100.0,
+                "percent_statements_covered_display": "100"
+            },
+            "missing_lines": [],
+            "excluded_lines": [],
+            "functions": {
+                "is_even": {
+                    "executed_lines": [
+                        5
+                    ],
+                    "summary": {
+                        "covered_lines": 1,
+                        "num_statements": 1,
+                        "percent_covered": 100.0,
+                        "percent_covered_display": "100",
+                        "missing_lines": 0,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 100.0,
+                        "percent_statements_covered_display": "100"
+                    },
+                    "missing_lines": [],
+                    "excluded_lines": [],
+                    "start_line": 4
+                },
+                "": {
+                    "executed_lines": [
+                        4
+                    ],
+                    "summary": {
+                        "covered_lines": 1,
+                        "num_statements": 1,
+                        "percent_covered": 100.0,
+                        "percent_covered_display": "100",
+                        "missing_lines": 0,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 100.0,
+                        "percent_statements_covered_display": "100"
+                    },
+                    "missing_lines": [],
+                    "excluded_lines": [],
+                    "start_line": 1
+                }
+            },
+            "classes": {
+                "": {
+                    "executed_lines": [
+                        4,
+                        5
+                    ],
+                    "summary": {
+                        "covered_lines": 2,
+                        "num_statements": 2,
+                        "percent_covered": 100.0,
+                        "percent_covered_display": "100",
+                        "missing_lines": 0,
+                        "excluded_lines": 0,
+                        "percent_statements_covered": 100.0,
+                        "percent_statements_covered_display": "100"
+                    },
+                    "missing_lines": [],
+                    "excluded_lines": [],
+                    "start_line": 1
+                }
+            }
+        }
+    },
+    "totals": {
+        "covered_lines": 2,
+        "num_statements": 13,
+        "percent_covered": 15.384615384615385,
+        "percent_covered_display": "15",
+        "missing_lines": 11,
+        "excluded_lines": 0,
+        "percent_statements_covered": 15.384615384615385,
+        "percent_statements_covered_display": "15"
+    }
+}

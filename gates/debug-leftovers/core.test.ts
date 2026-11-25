@@ -37,6 +37,22 @@ describe('debugLeftovers', () => {
     expect(debugLeftovers(diff, [])).toEqual([]);
   });
 
+  it('finds added print( and breakpoint( calls and pdb in Python source outside tests (ticket 99)', () => {
+    const diff = added('src/app/orders.py', 'total = 1', '    print(total)', 'breakpoint()', 'import pdb', 'import pdb; pdb.set_trace()', 'from pdb import set_trace', '    pdb.set_trace()', 'print (x)  # why');
+    expect(debugLeftovers(diff, []).map((l) => l.line)).toEqual([2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  it('leaves Python tests, conftest.py, allowed files and lines that only look alike', () => {
+    const tests = [added('tests/test_orders.py', 'print(1)'), added('src/orders_test.py', 'breakpoint()'), added('tests/conftest.py', 'print(1)'), added('scripts/cli.py', 'print(1)')].join('\n');
+    expect(debugLeftovers(tests, ['scripts/**'])).toEqual([]);
+    const alike = added('src/a.py', ...['# print(x)', '    # breakpoint()', 'pprint(x)', 'self.print(x)', 'fingerprint(x)', 'def print_report():', 'import pdbx', 'print', 'console.log(1)']);
+    expect(debugLeftovers(alike, [])).toEqual([]);
+  });
+
+  it('does not read Python debug calls in JS or TS source', () => {
+    expect(debugLeftovers(added('src/a.ts', 'print(x)', 'breakpoint()'), [])).toEqual([]);
+  });
+
   it('judges only added lines, never removed or context ones', () => {
     const diff = ['--- a/src/a.ts', '+++ b/src/a.ts', '@@ -3,1 +3,1 @@', '-console.log(old)', '+const x = 1;'].join('\n');
     expect(debugLeftovers(diff, [])).toEqual([]);
@@ -45,7 +61,7 @@ describe('debugLeftovers', () => {
 
 describe('leftoversCheck', () => {
   it('passes with nothing found', () => {
-    expect(leftoversCheck([])).toEqual({ name: 'debug-leftovers', command: 'added console.log, console.debug or debugger lines in source files', exitCode: 0, tail: '' });
+    expect(leftoversCheck([])).toEqual({ name: 'debug-leftovers', command: 'added console.log, console.debug or debugger lines in JS/TS source, or print(, breakpoint( or pdb lines in Python source', exitCode: 0, tail: '' });
   });
 
   it('fails naming each line', () => {
@@ -76,4 +92,16 @@ describe('printAllowedOf', () => {
     expect(printAllowedOf('{"printAllowed":["scripts/**"]}')).toEqual(['scripts/**']);
     expect(printAllowedOf('{"checks":{}}')).toEqual([]);
   });
+});
+
+it('recognises Python debug tokens after varied whitespace and inside inline comments', () => {
+  const diff = added('src/a.py', 'import  pdb', 'from  pdb import set_trace', 'from pdb  import set_trace',
+    'pdb.set_trace  ()', 'print  ()', 'x = 1  # breakpoint()', '  #print()');
+  expect(debugLeftovers(diff, []).map((line) => line.line)).toEqual([1, 2, 3, 4, 5, 6]);
+});
+
+it('exempts a root conftest and judges only files ending in .py', () => {
+  const diff = [added('conftest.py', 'print(1)'), added('src/conftest.py', 'print(2)'),
+    added('src/app.py.txt', 'print(3)'), added('src/myconftest.py', 'print(4)')].join('\n');
+  expect(debugLeftovers(diff, [])).toEqual([{ file: 'src/myconftest.py', line: 1, text: 'print(4)' }]);
 });

@@ -29,7 +29,7 @@ a missing command or a crash is red. Say each result in chat.
 | specifier | red check: every new test fails on the base |
 | coder | the four checks (lint, typecheck, tests with skipped tests red, build), test deletion, debug leftovers |
 | cleaner | the coder's gates, duplication, import boundaries |
-| hardener | the coder's gates, onkel; on the finished build also SAST (Semgrep), secret scan, hidden Unicode, supply chain |
+| hardener | the coder's gates, onkel (a .NET or Python project: the test-strength CRAP and mutation checks, `--runner dotnet` or `--runner python`); on the finished build also SAST (Semgrep; bandit for Python), secret scan, hidden Unicode, supply chain (pip-audit for Python) |
 
 The table is what Blueprint A asks for; `project.json` is what runs. A gate the table names that the
 project's `checks` lack goes to **Needs you** as a config gap, never skipped in silence.

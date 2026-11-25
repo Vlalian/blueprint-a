@@ -29,6 +29,9 @@ function fakeIo(scenario: string, over: Partial<SastIo> = {}) {
     },
     readHead: (file) => fileIn(join(scenario, 'head'), file),
     readBase: (file) => fileIn(join(scenario, 'base'), file),
+    bandit: () => {
+      throw new Error('bandit was not expected to run');
+    },
     tempDir: () => TEMP,
     write: (path, text) => void written.push([path, text]),
     remove: (dir) => void removed.push(dir),
@@ -134,6 +137,63 @@ describe('sastGate with recorded Semgrep output', () => {
   });
 });
 
+describe('sastGate on Python with bandit (ticket 99)', () => {
+  const RUN = 'import subprocess\n\n\ndef run(cmd):\n    return subprocess.call(cmd, shell=True)\n';
+  const banditJson = (dir: string, lines: number[]) =>
+    JSON.stringify({ errors: [], results: lines.map((line_number) => ({ test_id: 'B602', issue_severity: 'HIGH', issue_confidence: 'HIGH', filename: join(dir, 'src', 'run.py'), line_number, issue_text: 'subprocess call with shell=True identified, security issue.' })) });
+
+  /** A Python change: src/run.py at head, `base` at the base (or none); bandit finds shell=True on `headLines` and `baseLines`. */
+  function pyIo(head: string, base: string | undefined, headLines: number[], baseLines: number[] = []) {
+    const banditCalls: string[][] = [];
+    const semgrepCalls: string[][] = [];
+    const { io, removed } = fakeIo('new-error', {
+      semgrep: (args) => (semgrepCalls.push(args), { status: 0, stdout: '{"results":[],"errors":[]}' }),
+      bandit: (args) => {
+        banditCalls.push(args);
+        const inBase = args.at(-1)!.startsWith(TEMP);
+        return { status: 1, stdout: banditJson(inBase ? TEMP : 'repo', inBase ? baseLines : headLines) };
+      },
+      readHead: (file) => (file === 'src/run.py' ? head : undefined),
+      readBase: (file) => (file === 'src/run.py' ? base : undefined),
+    });
+    return { io, banditCalls, semgrepCalls, removed };
+  }
+
+  it('fails on a new HIGH bandit finding, without running Semgrep, which has no Python rules here', () => {
+    const { io, banditCalls, semgrepCalls } = pyIo(RUN, undefined, [5]);
+    const r = sastGate(opts(['src/run.py', 'tests/test_run.py']), io);
+    expect(r).toMatchObject({ pass: false, scanned: ['src/run.py'], findings: [{ rule: 'bandit.B602', severity: 'ERROR', file: 'src/run.py', line: 5 }] });
+    expect(banditCalls).toEqual([['-f', 'json', '-q', join('repo', 'src', 'run.py')]]);
+    expect(semgrepCalls).toEqual([]);
+    expect('semgrep' in r).toBe(false);
+  });
+
+  it('passes when the base had the same finding, scanning the base copy in a temp folder', () => {
+    const { io, banditCalls, removed } = pyIo(`# runs commands\n${RUN}`, RUN, [6], [5]);
+    expect(sastGate(opts(['src/run.py']), io)).toMatchObject({ pass: true, findings: [] });
+    expect(banditCalls[1]).toEqual(['-f', 'json', '-q', join(TEMP, 'src', 'run.py')]);
+    expect(removed).toEqual([TEMP]);
+  });
+
+  it('fails a new # nosec without a test id and reason', () => {
+    const { io } = pyIo(RUN.replace('shell=True)', 'shell=True)  # nosec'), undefined, []);
+    expect(sastGate(opts(['src/run.py']), io).findings).toEqual([expect.objectContaining({ rule: 'sast.suppression-without-reason', line: 5 })]);
+  });
+
+  it('runs Semgrep and bandit side by side on a mixed change', () => {
+    const { io, banditCalls, semgrepCalls } = pyIo(RUN, undefined, []);
+    const r = sastGate(opts(['src/run.py', 'src/ping.ts']), { ...io, readHead: (file) => (file === 'src/run.py' ? RUN : fileIn(join('new-error', 'head'), file)) });
+    expect(r.scanned).toEqual(['src/ping.ts', 'src/run.py']);
+    expect([semgrepCalls.length, banditCalls.length]).toEqual([1, 1]);
+  });
+
+  it('could not run when bandit is missing', () => {
+    const { io } = pyIo(RUN, undefined, []);
+    const missing = { ...io, bandit: () => { throw new Error('bandit is not installed for /py: run `"/py" -m pip install "bandit"`'); } };
+    expect(sastGate(opts(['src/run.py']), missing)).toEqual({ gate: 'sast', pass: false, error: 'bandit is not installed for /py: run `"/py" -m pip install "bandit"`' });
+  });
+});
+
 describe('SEMGREP_ARGS', () => {
   it('runs local rules only, JSON out, with metrics, the version check and Semgrep\'s own nosemgrep off', () => {
     expect(SEMGREP_ARGS('r')).toEqual(['scan', '--config', 'r', '--json', '--metrics=off', '--disable-version-check', '--disable-nosem', '--']);
@@ -225,5 +285,26 @@ describe('sastSince', () => {
     expect(sastSince('HEAD', opts(['src/ping.ts']), { ...io, git }).pass).toBe(true);
     expect(shown).toEqual([['show', 'HEAD:./src/ping.ts']]);
     expect(calls.map((c) => c.cwd)).toEqual(['repo', TEMP]);
+  });
+});
+
+it('names the Bandit process startup error', () => {
+  const { io } = fakeIo('new-error', {
+    bandit: () => ({ status: null, stdout: '', error: new Error('permission denied') }),
+    readHead: () => 'x = 1',
+  });
+  expect(sastGate(opts(['src/run.py']), io)).toEqual({
+    gate: 'sast', pass: false, error: 'bandit could not start: permission denied',
+  });
+});
+
+it('returns Bandit suppressions as an empty list when the scan is clean', () => {
+  const { io } = fakeIo('new-error', {
+    bandit: () => ({ status: 0, stdout: '{"results":[]}' }),
+    readHead: () => 'x = 1',
+    readBase: () => undefined,
+  });
+  expect(sastGate(opts(['src/run.py']), io)).toEqual({
+    gate: 'sast', pass: true, scanned: ['src/run.py'], findings: [], warnings: [], suppressed: [], notScanned: [],
   });
 });

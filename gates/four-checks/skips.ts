@@ -1,13 +1,15 @@
 // Run-time skips are not green (ticket 47). A test that skips itself (`it.skipIf` on a missing env
 // var or fixture, a `.todo` left behind) passes the test check without proving anything. The test
 // check runs through skips-cli.ts: it runs the project's test command, reads the test runner's JSON
-// report (vitest `--reporter=json`, jest `--json`) and counts the skipped and todo tests. More than
+// report (vitest `--reporter=json`, jest `--json`) or JUnit XML report (pytest `--junitxml`,
+// ticket 99) and counts the skipped and todo tests. More than
 // at the base (the commit before the role) fails the check, naming the ones the base did not skip.
 // The base's list comes from a cache keyed by the base's tree, which every guarded run fills for
 // the tree it ran on; on a miss the test command runs once in a checkout of the base. Pure; the
 // test command, git and the files are injected.
 
 import { posix } from 'node:path';
+import { descendants, parseXml } from '../lib/xml.ts';
 
 const SKIPPED = ['skipped', 'pending', 'todo', 'disabled'];
 
@@ -29,8 +31,21 @@ function parsed(report: string | undefined): Report | undefined {
   } catch {}
 }
 
-/** The skipped and todo tests of a JSON test report, as `<file from dir> > <full name>`; undefined when it is no test report. */
+/**
+ * The skipped tests of a JUnit XML report (pytest's `--junitxml`, ticket 99): each test case with a
+ * <skipped> element, as `<classname> > <name>`; undefined when it has no <testsuites> or <testsuite>.
+ */
+function skippedInJunit(report: string): string[] | undefined {
+  const root = parseXml(report);
+  if (!root.children.some((e) => e.name === 'testsuites' || e.name === 'testsuite')) return undefined;
+  return descendants(root, 'testcase')
+    .filter((c) => c.children.some((e) => e.name === 'skipped'))
+    .map((c) => `${c.attrs.classname || c.attrs.file} > ${c.attrs.name}`);
+}
+
+/** The skipped and todo tests of a JSON test report, as `<file from dir> > <full name>`, or of a JUnit XML one; undefined when it is no test report. */
 export function skippedIn(report: string | undefined, dir: string): string[] | undefined {
+  if (report?.trimStart().startsWith('<')) return skippedInJunit(report);
   return parsed(report)?.testResults.flatMap((file) =>
     file.assertionResults?.filter((t) => SKIPPED.includes(t.status)).map((t) => `${fromDir(file.name, dir)} > ${t.fullName}`) ?? [],
   );

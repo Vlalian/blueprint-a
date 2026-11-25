@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { crapGate, mutationGate } from '../../gates/test-strength/gate.ts';
-import { COVERAGE_ARGS, INSTALL, complexityOf, ranDotnet, dotnetAdapter, methodRows, mutantsOf, parseCobertura, parseXml, strykerArgs, type CoberturaLine, type DotnetIo } from './adapter.ts';
+import { COVERAGE_ARGS, INSTALL, complexityOf, ranDotnet, dotnetAdapter, methodRows, mutantsOf, parseCobertura, strykerArgs, type CoberturaLine, type DotnetIo } from './adapter.ts';
 
 // The recorded reports were made on the sample project (fixtures/dotnet-sample) with the
 // checkout folder replaced by /work/dotnet-sample; resolve() gives it a drive on Windows.
@@ -108,27 +108,6 @@ describe('parseCobertura', () => {
       ['Sample.A', 'N', 1],
       ['Sample.B', 'O', 1],
     ]);
-  });
-});
-
-describe('parseXml', () => {
-  it('gives a nameless root holding the elements, their decoded attributes, children and text', () => {
-    expect(parseXml('<a k="&lt;1" n="2">x<b/>y<c>z</c></a>')).toEqual({
-      name: '',
-      attrs: {},
-      children: [
-        {
-          name: 'a',
-          attrs: { k: '<1', n: '2' },
-          children: [
-            { name: 'b', attrs: {}, children: [], text: '' },
-            { name: 'c', attrs: {}, children: [], text: 'z' },
-          ],
-          text: 'xy',
-        },
-      ],
-      text: '',
-    });
   });
 });
 

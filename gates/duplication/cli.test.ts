@@ -22,6 +22,18 @@ const body = (name: string) => `export function ${name}(xs: number[]): number {
 }
 `;
 
+const pyBody = (name: string) => `def ${name}(xs):
+    total = 0
+    for x in xs:
+        if x > 10:
+            total += x * 2
+        elif x < -10:
+            total -= x * 3
+        else:
+            total -= x
+    return total + len(xs) * 3 - 7
+`;
+
 function repo(files: Record<string, string>) {
   const dir = mkdtempSync(join(tmpdir(), 'duplication-'));
   const git = (...a: string[]) => execFileSync('git', a, { cwd: dir });
@@ -57,6 +69,26 @@ describe('duplication CLI', () => {
     const clone = JSON.parse(r.stdout).clones[0];
     expect([clone.first.file, clone.second.file].sort()).toEqual(['src/a.ts', 'src/b.ts']);
     expect(execFileSync('git', ['status', '--porcelain'], { cwd: dir, encoding: 'utf8' })).toBe('?? src/b.ts\n');
+  });
+
+  it("bites on Python through jscpd's python format: a copied function fails, removing it passes (ticket 99)", () => {
+    const dir = repo({ 'src/a.py': pyBody('a') });
+    expect(
+      proveItBites({
+        gate: 'duplication',
+        run: () => run(dir).status ?? -1,
+        inject: () => writeFileSync(join(dir, 'src/b.py'), pyBody('b')),
+        revert: () => rmSync(join(dir, 'src/b.py')),
+      }),
+    ).toEqual(BITES);
+  });
+
+  it("leaves a Python virtual environment's files out", () => {
+    const dir = repo({ 'src/x.py': 'X = 1\n' });
+    mkdirSync(join(dir, '.venv', 'lib'), { recursive: true });
+    writeFileSync(join(dir, '.venv', 'lib', 'copy.py'), pyBody('a'));
+    writeFileSync(join(dir, 'src/a.py'), pyBody('a'));
+    expect(JSON.parse(run(dir).stdout)).toMatchObject({ pass: true, clones: [] });
   });
 
   it('passes a change next to a clone that was already there', () => {

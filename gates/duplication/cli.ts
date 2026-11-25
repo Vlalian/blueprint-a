@@ -16,11 +16,15 @@ import { changedLines } from '../lib/changes.ts';
 import { emit, failClosed } from '../lib/contract.ts';
 import { duplicationGate } from './gate.ts';
 
+// Installed packages are not the project's code: node_modules, and a Python virtual environment
+// (ticket 99; jscpd reads Python with its python format by default, so only these are left out).
+const IGNORED = ['**/node_modules/**', '**/.venv/**', '**/venv/**', '**/__pycache__/**'].join(',');
+
 function jscpdReport(cwd: string): string {
   const out = mkdtempSync(join(tmpdir(), 'jscpd-'));
   try {
     const jscpd = createRequire(import.meta.url).resolve('jscpd/run-jscpd.js');
-    execFileSync(process.execPath, [jscpd, '--reporters', 'json', '--output', out, '--silent', '--ignore', '**/node_modules/**', '.'], { cwd });
+    execFileSync(process.execPath, [jscpd, '--reporters', 'json', '--output', out, '--silent', '--ignore', IGNORED, '.'], { cwd });
     return readFileSync(join(out, 'jscpd-report.json'), 'utf8');
   } finally {
     rmSync(out, { recursive: true, force: true });

@@ -21,6 +21,15 @@ describe('supply-chain CLI', () => {
     expect(JSON.parse(r.stdout)).toMatchObject({ gate: 'supply-chain', pass: false, error: expect.stringMatching(/^usage: supply-chain/) });
   });
 
+  it('exits 2 and says what to install for a Python lockfile when there is no Python (ticket 99)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'supply-chain-cli-'));
+    writeFileSync(join(dir, 'requirements.txt'), 'six==1.17.0\n');
+    const env = { ...process.env, PATH: dir, Path: dir, WORKFLOW_PYTHON: '' };
+    const r = spawnSync(process.execPath, [CLI, '--lockfile', 'requirements.txt'], { cwd: dir, encoding: 'utf8', env });
+    expect(r.status).toBe(2);
+    expect(JSON.parse(r.stdout)).toMatchObject({ gate: 'supply-chain', pass: false, error: expect.stringMatching(/^Python 3\.10 or later was not found/) });
+  });
+
   it('exits 2 on an unknown option rather than ignoring it', () => {
     const r = run(tmpdir(), '--bse', 'main');
     expect(r.status).toBe(2);

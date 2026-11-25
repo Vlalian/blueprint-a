@@ -1,6 +1,6 @@
 {
   "name": "blueprint-a",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A gated agent workflow: dispatch and role skills, docs and gates as code",
   "license": "MIT",
   "private": true,

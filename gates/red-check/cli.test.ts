@@ -53,3 +53,12 @@ it('hands the test command a file name as one literal argument, never as shell c
   expect(r.status, r.stdout + r.stderr).toBe(0);
   expect(recorded()).toEqual([[name]]);
 });
+
+it('runs a runner that lives only in the worktree from the base checkout through {CWD} (ticket 99: a .venv is not in the base)', () => {
+  const { dir } = repo();
+  writeFileSync(join(dir, '.gitignore'), 'runner.cjs\n');
+  writeFileSync(join(dir, 'runner.cjs'), `console.log(JSON.stringify({testResults:[{name:require('path').resolve(process.argv.at(-1)),assertionResults:[{status:'failed'}]}]})); process.exitCode = 1;\n`);
+  writeFileSync(join(dir, 'b.test.ts'), 'it("b", () => {});\n');
+  const r = spawnSync(process.execPath, [CLI, '--base', 'HEAD', '--cwd', dir, '--test-command', 'node "{CWD}/runner.cjs"'], { encoding: 'utf8' });
+  expect(r.status, r.stdout + r.stderr).toBe(0);
+});
